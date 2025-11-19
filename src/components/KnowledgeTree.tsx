@@ -1,4 +1,4 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback, useRef } from 'react';
 import { Card, Tree, Spin, message, Tag, Empty } from 'antd';
 import { FolderOutlined, FileOutlined } from '@ant-design/icons';
 import type { Entity, KnowledgeNode } from '../types';
@@ -26,6 +26,8 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
   const [selectedEntity, setSelectedEntity] = useState<Entity | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState<boolean>(false);
   const [entityMap, setEntityMap] = useState<Map<string, Entity>>(new Map());
+  const treeContainerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(400);
 
   // 加载初始数据 - 仅加载Domain和subDomain层级
   const loadInitialData = useCallback(async () => {
@@ -161,6 +163,40 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
       // 目前为了演示，我们保持现有逻辑
       console.log('展开节点:', newExpandedKeys);
     }
+    
+    // 实现自适应宽度功能
+    setTimeout(() => {
+      if (treeContainerRef.current) {
+        // 计算树容器中最大文本宽度
+        const treeNodes = treeContainerRef.current.querySelectorAll('.ant-tree-treenode');
+        let maxWidth = 400; // 默认最小宽度
+        
+        treeNodes.forEach(node => {
+          const titleElement = node.querySelector('.ant-tree-node-content-wrapper');
+          if (titleElement) {
+            // 获取文本内容的实际宽度
+            const textContent = titleElement.textContent || '';
+            const tempElement = document.createElement('span');
+            tempElement.style.visibility = 'hidden';
+            tempElement.style.position = 'absolute';
+            tempElement.style.whiteSpace = 'nowrap';
+            tempElement.style.fontFamily = window.getComputedStyle(titleElement).fontFamily;
+            tempElement.style.fontSize = window.getComputedStyle(titleElement).fontSize;
+            tempElement.textContent = textContent;
+            document.body.appendChild(tempElement);
+            const width = tempElement.offsetWidth;
+            document.body.removeChild(tempElement);
+            
+            if (width > maxWidth) {
+              maxWidth = width;
+            }
+          }
+        });
+        
+        // 设置容器宽度，增加一些padding
+        setContainerWidth(Math.min(Math.max(maxWidth + 50, 400), 800));
+      }
+    }, 100);
   };
 
   // 处理节点选择
@@ -200,7 +236,16 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
   }));
 
   return (
-    <div style={{ padding: '24px', background: '#f0f2f5' }}>
+    <div 
+      ref={treeContainerRef}
+      style={{ 
+        padding: '24px', 
+        background: '#f0f2f5',
+        width: `${containerWidth}px`,
+        minWidth: '400px',
+        transition: 'width 0.3s ease'
+      }}
+    >
       <Card>
         <Spin spinning={loading}>
           {treeData.length > 0 ? (
