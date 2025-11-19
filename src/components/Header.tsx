@@ -1,82 +1,29 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Layout, Button, Avatar, Dropdown, Space, Typography, Input, Card, List, Tag, Empty, Spin } from 'antd';
-import { 
-  UserOutlined, 
-  MenuFoldOutlined, 
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Layout,
+  Button,
+  Avatar,
+  Dropdown,
+  Space,
+  Typography,
+  Input,
+  Card,
+  List,
+  Tag,
+  Empty,
+  Spin,
+} from "antd";
+import {
+  UserOutlined,
+  MenuFoldOutlined,
   MenuUnfoldOutlined,
   SettingOutlined,
-  LogoutOutlined
-} from '@ant-design/icons';
-import type { MenuProps } from 'antd';
-import type { Entity, SearchResult } from '../types';
-import { searchEntities } from '../services/dataService';
-
-// 添加自定义样式
-const customSearchStyles = `
-  .custom-search-container {
-    display: flex;
-    align-items: center;
-  }
-  
-  .custom-search-container .ant-input-group-wrapper {
-    display: flex;
-    align-items: center;
-  }
-  
-  .custom-search-container .ant-input-wrapper {
-    display: flex;
-    align-items: center;
-  }
-  
-  .custom-search-container .ant-input-affix-wrapper {
-    display: flex;
-    align-items: center;
-  }
-  
-  .custom-search-container .ant-input-group-addon {
-    display: flex;
-    align-items: center;
-  }
-  
-  .custom-search-container .ant-input-search-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    min-width: 40px;
-    padding: 0 10px;
-    transition: all 0.3s;
-  }
-  
-  /* 悬停效果 */
-  .custom-search-container .ant-input-search-button:hover {
-    transform: scale(1.05);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  }
-  
-  /* 点击效果 */
-  .custom-search-container .ant-input-search-button:active {
-    transform: scale(0.98);
-  }
-  
-  /* 响应式设计：在小屏幕上适当调整 */
-  @media (max-width: 768px) {
-    .custom-search-container .ant-input-search-button {
-      width: 36px;
-      min-width: 36px;
-      padding: 0 8px;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .custom-search-container .ant-input-search-button {
-      width: 32px;
-      min-width: 32px;
-      padding: 0 6px;
-    }
-  }
-`;
-
+  LogoutOutlined,
+} from "@ant-design/icons";
+import type { MenuProps } from "antd";
+import type { Entity, SearchResult } from "../types";
+import { searchEntities } from "../services/dataService";
+import styles from "./Header.module.css";
 
 const { Header: AntHeader } = Layout;
 const { Title } = Typography;
@@ -88,36 +35,36 @@ interface HeaderProps {
   onEntityClick?: (entity: Entity) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ 
-  collapsed = false, 
+const Header: React.FC<HeaderProps> = ({
+  collapsed = false,
   onToggle,
-  onEntityClick
+  onEntityClick,
 }) => {
-  const [searchValue, setSearchValue] = useState('');
+  const [searchValue, setSearchValue] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   // 用户菜单项
-  const userMenuItems: MenuProps['items'] = [
+  const userMenuItems: MenuProps["items"] = [
     {
-      key: 'profile',
+      key: "profile",
       icon: <UserOutlined />,
-      label: '个人资料',
+      label: "个人资料",
     },
     {
-      key: 'settings',
+      key: "settings",
       icon: <SettingOutlined />,
-      label: '设置',
+      label: "设置",
     },
     {
-      type: 'divider',
+      type: "divider",
     },
     {
-      key: 'logout',
+      key: "logout",
       icon: <LogoutOutlined />,
-      label: '退出登录',
+      label: "退出登录",
       danger: true,
     },
   ];
@@ -136,7 +83,7 @@ const Header: React.FC<HeaderProps> = ({
       setSearchResults(results);
       setShowSearchResults(true);
     } catch (error) {
-      console.error('搜索失败:', error);
+      console.error("搜索失败:", error);
       setSearchResults([]);
     } finally {
       setSearchLoading(false);
@@ -146,7 +93,7 @@ const Header: React.FC<HeaderProps> = ({
   // 处理搜索结果点击
   const handleSearchResultClick = (entity: Entity) => {
     setShowSearchResults(false);
-    setSearchValue('');
+    setSearchValue("");
     if (onEntityClick) {
       onEntityClick(entity);
     }
@@ -155,31 +102,34 @@ const Header: React.FC<HeaderProps> = ({
   // 点击外部关闭搜索结果
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
         setShowSearchResults(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
   // 处理用户菜单点击
-  const handleUserMenuClick: MenuProps['onClick'] = ({ key }) => {
+  const handleUserMenuClick: MenuProps["onClick"] = ({ key }) => {
     switch (key) {
-      case 'profile':
+      case "profile":
         // 处理个人资料点击
-        console.log('个人资料');
+        console.log("个人资料");
         break;
-      case 'settings':
+      case "settings":
         // 处理设置点击
-        console.log('设置');
+        console.log("设置");
         break;
-      case 'logout':
+      case "logout":
         // 处理退出登录
-        console.log('退出登录');
+        console.log("退出登录");
         break;
       default:
         break;
@@ -187,38 +137,28 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <>
-      <style>{customSearchStyles}</style>
-      <AntHeader 
-        style={{ 
-          padding: '0 24px', 
-          background: '#fff', 
-          display: 'flex', 
-          alignItems: 'center', 
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 1000
-        }}
-      >
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+    <AntHeader className={styles.header}>
+      <div className={styles.headerLeft}>
         {onToggle && (
           <Button
             type="text"
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             onClick={onToggle}
-            style={{ marginRight: 16 }}
+            className={styles.toggleButton}
           />
         )}
-        
-        <Title level={3} style={{ margin: 0, color: '#1890ff' }}>
+
+        <Title level={3} className={styles.headerTitle}>
           通信领域知识体系
         </Title>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <div ref={searchRef} style={{ position: 'relative', width: 320 }} className="custom-search-container">
-          <Space.Compact style={{ width: '100%' }}>
+      <div className={styles.headerCenter}>
+        <div
+          ref={searchRef}
+          className={`${styles.searchContainer} custom-search-container`}
+        >
+          <Space.Compact className={styles.fullWidth}>
             <Input.Search
               placeholder="搜索知识点..."
               allowClear
@@ -226,28 +166,18 @@ const Header: React.FC<HeaderProps> = ({
               onChange={(e) => setSearchValue(e.target.value)}
               onSearch={handleSearch}
               onFocus={() => searchValue.trim() && setShowSearchResults(true)}
-              style={{ width: '100%' }}
+              className={styles.fullWidth}
             />
           </Space.Compact>
-          
+
           {/* 搜索结果下拉框 */}
           {showSearchResults && (
             <Card
-              style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                zIndex: 1000,
-                maxHeight: '400px',
-                overflow: 'auto',
-                marginTop: '8px',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-              }}
+              className={styles.searchResultsCard}
               bodyStyle={{ padding: 0 }}
             >
               {searchLoading ? (
-                <div style={{ padding: '20px', textAlign: 'center' }}>
+                <div className={styles.searchLoading}>
                   <Spin size="small" />
                 </div>
               ) : searchResults.length > 0 ? (
@@ -256,15 +186,19 @@ const Header: React.FC<HeaderProps> = ({
                   dataSource={searchResults}
                   renderItem={(result) => (
                     <List.Item
-                      style={{ cursor: 'pointer', padding: '12px 16px' }}
+                      className={styles.searchResultItem}
                       onClick={() => handleSearchResultClick(result.entity)}
                     >
                       <List.Item.Meta
                         title={
                           <div>
                             <span>{result.entity.entity_name}</span>
-                            <Tag 
-                              color={result.entity.validity_result === '有效' ? 'green' : 'red'}
+                            <Tag
+                              color={
+                                result.entity.validity_result === "有效"
+                                  ? "green"
+                                  : "red"
+                              }
                             >
                               {result.entity.validity_result}
                             </Tag>
@@ -274,7 +208,7 @@ const Header: React.FC<HeaderProps> = ({
                           <div>
                             <div>{result.entity.description}</div>
                             {result.paths && result.paths.length > 0 && (
-                              <div style={{ marginTop: 4 }}>
+                              <div className={styles.searchResultDescription}>
                                 {result.paths.slice(0, 2).map((path, index) => (
                                   <Tag key={index} color="green">
                                     {path}
@@ -292,19 +226,19 @@ const Header: React.FC<HeaderProps> = ({
                   )}
                 />
               ) : (
-                <Empty 
-                  description="暂无搜索结果" 
-                  style={{ padding: '20px' }}
+                <Empty
+                  description="暂无搜索结果"
+                  className={styles.noResults}
                 />
               )}
             </Card>
           )}
         </div>
       </div>
-      
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+
+      <div className={styles.headerRight}>
         <Space size="middle">
-          <Dropdown 
+          <Dropdown
             menu={{ items: userMenuItems, onClick: handleUserMenuClick }}
             placement="bottomRight"
             arrow
@@ -316,7 +250,6 @@ const Header: React.FC<HeaderProps> = ({
         </Space>
       </div>
     </AntHeader>
-    </>
   );
 };
 

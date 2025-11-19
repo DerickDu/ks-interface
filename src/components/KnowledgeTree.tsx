@@ -1,12 +1,18 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback, useRef } from 'react';
-import { Card, Tree, Spin, message, Tag, Empty } from 'antd';
-import { FolderOutlined, FileOutlined } from '@ant-design/icons';
-import type { Entity, KnowledgeNode } from '../types';
-import { fetchEntities, fetchCatalogs } from '../services/dataService';
-import { convertToTreeStructure } from '../utils/dataTransform';
-import EntityDetailModal from './EntityDetailModal';
-
-
+import React, {
+  useState,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+  useCallback,
+  useRef,
+} from "react";
+import { Card, Tree, Spin, message, Empty } from "antd";
+import { FolderOutlined, FileOutlined } from "@ant-design/icons";
+import type { Entity, KnowledgeNode } from "../types";
+import { fetchEntities, fetchCatalogs } from "../services/dataService";
+import { convertToTreeStructure } from "../utils/dataTransform";
+import EntityDetailModal from "./EntityDetailModal";
+import styles from "./KnowledgeTree.module.css";
 
 interface KnowledgeTreeRef {
   handleEntityClick: (entity: Entity) => void;
@@ -35,27 +41,26 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
       setLoading(true);
       const [entitiesData, catalogsData] = await Promise.all([
         fetchEntities(),
-        fetchCatalogs()
+        fetchCatalogs(),
       ]);
-      
+
       // 创建实体映射
       const entityMap = new Map<string, Entity>();
-      entitiesData.forEach(entity => {
+      entitiesData.forEach((entity) => {
         entityMap.set(entity.entity_id, entity);
       });
       setEntityMap(entityMap);
-      
+
       // 转换为树形结构（仅Domain和subDomain层级）
       const tree = convertToTreeStructure(catalogsData, entitiesData);
       setTreeData(tree);
-      
+
       // 默认展开第一级（Domain层级）
-      const firstLevelKeys = tree.map(node => node.key);
+      const firstLevelKeys = tree.map((node) => node.key);
       setExpandedKeys(firstLevelKeys);
-      
     } catch (error) {
-      console.error('加载数据失败:', error);
-      message.error('加载数据失败');
+      console.error("加载数据失败:", error);
+      message.error("加载数据失败");
     } finally {
       setLoading(false);
     }
@@ -69,23 +74,22 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
       setLoading(true);
       const [entitiesData, catalogsData] = await Promise.all([
         fetchEntities(),
-        fetchCatalogs()
+        fetchCatalogs(),
       ]);
-      
+
       // 创建实体映射
       const entityMap = new Map<string, Entity>();
-      entitiesData.forEach(entity => {
+      entitiesData.forEach((entity) => {
         entityMap.set(entity.entity_id, entity);
       });
       setEntityMap(entityMap);
-      
+
       // 转换为完整的树形结构
       const tree = convertToTreeStructure(catalogsData, entitiesData);
       setTreeData(tree);
-      
     } catch (error) {
-      console.error('加载详细数据失败:', error);
-      message.error('加载详细数据失败');
+      console.error("加载详细数据失败:", error);
+      message.error("加载详细数据失败");
     } finally {
       setLoading(false);
     }
@@ -98,16 +102,21 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
 
   // 将自定义树节点转换为Ant Design树节点
   const convertToAntdTreeData = (nodes: KnowledgeNode[]): any[] => {
-    return nodes.map(node => {
+    return nodes.map((node) => {
       // 为每个节点生成唯一key，结合路径和entity_id，解决重复key问题
-      const nodeKey = node.isLeaf && node.entityData ? `${node.key}_${node.entityData.entity_id}` : node.key;
-      
+      const nodeKey =
+        node.isLeaf && node.entityData
+          ? `${node.key}_${node.entityData.entity_id}`
+          : node.key;
+
       const antdNode: any = {
         title: node.title,
         key: nodeKey,
         icon: node.isLeaf ? <FileOutlined /> : <FolderOutlined />,
-        children: node.children ? convertToAntdTreeData(node.children) : undefined,
-        isLeaf: node.isLeaf
+        children: node.children
+          ? convertToAntdTreeData(node.children)
+          : undefined,
+        isLeaf: node.isLeaf,
       };
 
       // 如果是叶子节点，使用标题直接显示而不用span包装
@@ -130,11 +139,11 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
     const handleTitleClick = (e: React.MouseEvent) => {
       e.stopPropagation(); // 阻止事件冒泡到树节点默认的选择事件
       const isExpanded = expandedKeys.includes(nodeData.key);
-      
+
       // 切换展开/折叠状态
       if (isExpanded) {
         // 收起节点
-        setExpandedKeys(expandedKeys.filter(key => key !== nodeData.key));
+        setExpandedKeys(expandedKeys.filter((key) => key !== nodeData.key));
       } else {
         // 展开节点
         setExpandedKeys([...expandedKeys, nodeData.key]);
@@ -142,10 +151,7 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
     };
 
     return (
-      <span 
-        onClick={handleTitleClick}
-        style={{ cursor: 'pointer', userSelect: 'none' }}
-      >
+      <span onClick={handleTitleClick} className={styles.clickableTitle}>
         {nodeData.title}
       </span>
     );
@@ -155,44 +161,51 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
   const onExpand = async (expandedKeys: React.Key[]) => {
     setExpandedKeys(expandedKeys);
     setAutoExpandParent(false);
-    
+
     // 检查是否有新展开的节点
-    const newExpandedKeys = expandedKeys.filter(key => !expandedKeys.includes(key));
+    const newExpandedKeys = expandedKeys.filter(
+      (key) => !expandedKeys.includes(key)
+    );
     if (newExpandedKeys.length > 0) {
       // 这里可以实现按需加载逻辑
       // 目前为了演示，我们保持现有逻辑
-      console.log('展开节点:', newExpandedKeys);
+      console.log("展开节点:", newExpandedKeys);
     }
-    
+
     // 实现自适应宽度功能
     setTimeout(() => {
       if (treeContainerRef.current) {
         // 计算树容器中最大文本宽度
-        const treeNodes = treeContainerRef.current.querySelectorAll('.ant-tree-treenode');
+        const treeNodes =
+          treeContainerRef.current.querySelectorAll(".ant-tree-treenode");
         let maxWidth = 400; // 默认最小宽度
-        
-        treeNodes.forEach(node => {
-          const titleElement = node.querySelector('.ant-tree-node-content-wrapper');
+
+        treeNodes.forEach((node) => {
+          const titleElement = node.querySelector(
+            ".ant-tree-node-content-wrapper"
+          );
           if (titleElement) {
             // 获取文本内容的实际宽度
-            const textContent = titleElement.textContent || '';
-            const tempElement = document.createElement('span');
-            tempElement.style.visibility = 'hidden';
-            tempElement.style.position = 'absolute';
-            tempElement.style.whiteSpace = 'nowrap';
-            tempElement.style.fontFamily = window.getComputedStyle(titleElement).fontFamily;
-            tempElement.style.fontSize = window.getComputedStyle(titleElement).fontSize;
+            const textContent = titleElement.textContent || "";
+            const tempElement = document.createElement("span");
+            tempElement.style.visibility = "hidden";
+            tempElement.style.position = "absolute";
+            tempElement.style.whiteSpace = "nowrap";
+            tempElement.style.fontFamily =
+              window.getComputedStyle(titleElement).fontFamily;
+            tempElement.style.fontSize =
+              window.getComputedStyle(titleElement).fontSize;
             tempElement.textContent = textContent;
             document.body.appendChild(tempElement);
             const width = tempElement.offsetWidth;
             document.body.removeChild(tempElement);
-            
+
             if (width > maxWidth) {
               maxWidth = width;
             }
           }
         });
-        
+
         // 设置容器宽度，增加一些padding
         setContainerWidth(Math.min(Math.max(maxWidth + 50, 400), 800));
       }
@@ -203,7 +216,7 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
   const onSelect = (selectedKeys: React.Key[]) => {
     if (selectedKeys.length > 0) {
       const nodeKey = selectedKeys[0] as string;
-      
+
       // 查找对应的实体
       const entity = findEntityByNodeKey(nodeKey);
       if (entity) {
@@ -215,7 +228,7 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
   // 查找实体
   const findEntityByNodeKey = (key: string): Entity | null => {
     // 从新格式的key中提取entity_id（格式为"path_entity_id"）
-    const parts = key.split('_');
+    const parts = key.split("_");
     if (parts.length > 1) {
       const entityId = parts[parts.length - 1];
       return entityMap.get(entityId) || null;
@@ -232,19 +245,18 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
 
   // 暴露方法给父组件
   useImperativeHandle(ref, () => ({
-    handleEntityClick
+    handleEntityClick,
   }));
 
   return (
-    <div 
+    <div
       ref={treeContainerRef}
-      style={{ 
-        padding: '24px', 
-        background: '#f0f2f5',
-        width: `${containerWidth}px`,
-        minWidth: '400px',
-        transition: 'width 0.3s ease'
-      }}
+      className={`${styles.treeContainer} ${styles.dynamicWidth}`}
+      style={
+        {
+          "--container-width": `${containerWidth}px`,
+        } as React.CSSProperties
+      }
     >
       <Card>
         <Spin spinning={loading}>
@@ -273,5 +285,5 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
   );
 });
 
-KnowledgeTree.displayName = 'KnowledgeTree';
+KnowledgeTree.displayName = "KnowledgeTree";
 export default KnowledgeTree;

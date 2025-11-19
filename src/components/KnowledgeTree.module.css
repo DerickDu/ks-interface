@@ -1,0 +1,17 @@
+.treeContainer {
+  padding: 24px;
+  background: #f0f2f5;
+  width: 100%;
+  min-width: 400px;
+  transition: width 0.3s ease;
+}
+
+.clickableTitle {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 动态宽度类 */
+.dynamicWidth {
+  width: var(--container-width, 400px); /* 使用CSS变量，默认400px */
+}

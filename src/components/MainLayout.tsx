@@ -1,15 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  Layout,
-  Spin,
-  Row,
-  Col,
-  Card,
-  Statistic,
-  Divider,
-  Tag,
-  Button,
-} from "antd";
+import { Layout, Spin, Row, Col, Card, Statistic, Divider, Tag } from "antd";
 import {
   DatabaseOutlined,
   WifiOutlined,
@@ -21,8 +11,10 @@ import {
   ReadOutlined,
   SnippetsOutlined,
   FileWordOutlined,
-  DownOutlined,
-  UpOutlined,
+  ExperimentOutlined,
+  BulbOutlined,
+  DesktopOutlined,
+  CalculatorOutlined,
 } from "@ant-design/icons";
 import KnowledgeTree from "./KnowledgeTree";
 import Header from "./Header";
@@ -33,117 +25,146 @@ import {
   fetchCatalogs,
   getEntitySources,
 } from "../services/dataService";
-import type { Entity, Catalog, EntitySourceDetail } from "../types";
+import type { Entity, EntitySourceDetail } from "../types";
 
 // 添加响应式样式
 const responsiveStyles = `
+  /* 统计卡片容器基础样式 */
   .statistics-container {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 12px;
     margin-bottom: 16px;
   }
 
-  /* 默认移动设备布局 */
-  @media (max-width: 767px) {
-    .statistics-container {
-      grid-template-columns: 1fr;
-    }
-    
-    .statistics-container .ant-row {
-      margin-bottom: 8px !important;
-    }
-    
-    .statistics-container .ant-card {
-      text-align: center;
-    }
-    
-    /* 在小屏幕设备上隐藏分类统计的Divider */
-    .statistics-container .ant-divider {
-      display: none;
-    }
+  /* 统计卡片行基础样式 */
+  .statistics-row {
+    display: flex;
+    gap: 12px;
+    width: 100%;
   }
 
-  /* 平板设备布局 */
-  @media (min-width: 768px) and (max-width: 1023px) {
-    .statistics-container {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .statistics-container > .ant-row:first-child {
-      grid-column: 1 / -1;
-    }
+  /* 统计卡片基础样式 */
+  .statistics-card {
+    flex: 1;
+    min-width: 0;
   }
 
-  /* 桌面设备布局 */
-  @media (min-width: 1024px) {
-    .statistics-container {
-      grid-template-columns: repeat(3, 1fr);
-    }
-    
-    .statistics-container > .ant-row:first-child {
-      grid-column: 1 / -1;
-    }
+  /* 当可以并排显示时的布局 */
+  .can-show-side-by-side .statistics-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
 
-  /* 当可以并排显示时的特殊处理 */
-  @media (min-width: 1200px) {
-    .can-show-side-by-side .statistics-container {
-      grid-template-columns: repeat(4, 1fr);
-    }
+  .can-show-side-by-side .statistics-row {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .can-show-side-by-side .primary-statistics-row .statistics-card {
+    flex: 1;
+  }
+
+  .can-show-side-by-side .domain-statistics-row .statistics-card {
+    flex: 1;
   }
 
   /* 当不能并排显示时的紧凑布局 */
-  .compact-statistics-row {
+  .cannot-show-side-by-side .statistics-container {
     display: flex;
-    flex-wrap: nowrap;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .cannot-show-side-by-side .compact-statistics-row {
+    display: flex;
+    gap: 8px;
+    width: 100%;
     overflow-x: auto;
     padding: 4px 0;
     scrollbar-width: thin;
-    margin-bottom: 8px;
   }
 
-  .compact-statistics-row::-webkit-scrollbar {
+  .cannot-show-side-by-side .compact-statistics-row::-webkit-scrollbar {
     height: 6px;
   }
 
-  .compact-statistics-row::-webkit-scrollbar-thumb {
+  .cannot-show-side-by-side .compact-statistics-row::-webkit-scrollbar-thumb {
     background-color: #c1c1c1;
     border-radius: 3px;
   }
 
-  /* 紧凑布局下的统计卡片 */
-  .compact-statistics-card {
-    min-width: 120px;
-    margin-right: 8px;
-    flex-shrink: 0;
+  /* 主要统计卡片（知识点总量和通信节点）- 更宽 */
+  .cannot-show-side-by-side .compact-statistics-card.primary {
+    flex: 1.5;
+    min-width: 150px;
+    max-width: 220px;
   }
 
-  /* 移动端紧凑布局 */
+  /* 学科分类卡片 - 较窄 */
+  .cannot-show-side-by-side .compact-statistics-card.domain {
+    flex: 1;
+    min-width: 100px;
+    max-width: 150px;
+  }
+
+  /* 移动设备适配 */
   @media (max-width: 767px) {
-    .compact-statistics-card {
-      min-width: 100px;
-      margin-right: 6px;
+    .statistics-container {
+      gap: 8px;
+    }
+
+    .statistics-row {
+      gap: 8px;
+    }
+
+    /* 主要统计卡片（知识点总量和通信节点）- 移动设备上更宽 */
+    .cannot-show-side-by-side .compact-statistics-card.primary {
+      min-width: 120px;
+      max-width: 170px;
+    }
+
+    /* 学科分类卡片 - 移动设备上较窄 */
+    .cannot-show-side-by-side .compact-statistics-card.domain {
+      min-width: 80px;
+      max-width: 110px;
     }
     
     /* 在小屏幕设备上隐藏分类统计的Divider */
-    .can-show-side-by-side-false .ant-divider {
+    .cannot-show-side-by-side .ant-divider {
       display: none;
     }
   }
 
-  /* 平板端紧凑布局 */
+  /* 平板设备适配 */
   @media (min-width: 768px) and (max-width: 1023px) {
-    .compact-statistics-card {
-      min-width: 110px;
-      margin-right: 7px;
+    /* 主要统计卡片（知识点总量和通信节点）- 平板设备上更宽 */
+    .cannot-show-side-by-side .compact-statistics-card.primary {
+      min-width: 140px;
+      max-width: 200px;
+    }
+
+    /* 学科分类卡片 - 平板设备上较窄 */
+    .cannot-show-side-by-side .compact-statistics-card.domain {
+      min-width: 90px;
+      max-width: 130px;
     }
   }
 
-  /* 桌面端紧凑布局 */
+  /* 桌面设备适配 */
   @media (min-width: 1024px) {
-    .compact-statistics-card {
-      min-width: 130px;
-      margin-right: 10px;
+    /* 主要统计卡片（知识点总量和通信节点）- 桌面设备上更宽 */
+    .cannot-show-side-by-side .compact-statistics-card.primary {
+      min-width: 150px;
+      max-width: 220px;
+    }
+
+    /* 学科分类卡片 - 桌面设备上较窄 */
+    .cannot-show-side-by-side .compact-statistics-card.domain {
+      min-width: 100px;
+      max-width: 150px;
     }
   }
 `;
@@ -158,15 +179,16 @@ const { Content } = Layout;
 const MainLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const knowledgeTreeRef = useRef<KnowledgeTreeRef | null>(null);
-  const [entities, setEntities] = useState<Entity[]>([]);
-  const [catalogs, setCatalogs] = useState<Catalog[]>([]);
-  const [sources, setSources] = useState<EntitySourceDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalEntities: 0,
     communicationCount: 0,
     domainCounts: {
       通信: 0,
+      自然科学: 0,
+      电路与电子: 0,
+      计算机: 0,
+      数学: 0,
     },
     sourceTypes: {} as Record<string, number>,
   });
@@ -242,9 +264,6 @@ const MainLayout: React.FC = () => {
           fetchCatalogs(),
         ]);
 
-        setEntities(entitiesData);
-        setCatalogs(catalogsData);
-
         // 计算统计数据
         const totalEntities = entitiesData.length;
 
@@ -253,9 +272,14 @@ const MainLayout: React.FC = () => {
           (c) => c.domain === "通信"
         ).length;
 
-        // 计算各Domain分类节点数量（仅包含通信类别）
+        // 计算各Domain分类节点数量
         const domainCounts = {
           通信: catalogsData.filter((c) => c.domain === "通信").length,
+          自然科学: catalogsData.filter((c) => c.domain === "自然科学").length,
+          电路与电子: catalogsData.filter((c) => c.domain === "电路与电子")
+            .length,
+          计算机: catalogsData.filter((c) => c.domain === "计算机").length,
+          数学: catalogsData.filter((c) => c.domain === "数学").length,
         };
 
         // 计算来源类型统计
@@ -265,8 +289,6 @@ const MainLayout: React.FC = () => {
           const entitySources = await getEntitySources(entity.entity_id);
           allSources.push(...entitySources);
         }
-
-        setSources(allSources);
 
         // 统计来源类型
         const sourceTypes: Record<string, number> = {};
@@ -357,21 +379,29 @@ const MainLayout: React.FC = () => {
                   </h2>
 
                   {/* 统一容器包含所有统计卡片 */}
-                  <div className="statistics-container">
+                  <div
+                    className={`statistics-container ${
+                      canShowSideBySide
+                        ? "can-show-side-by-side"
+                        : "cannot-show-side-by-side"
+                    }`}
+                  >
                     {/* 当可以并排显示时，保持原有布局 */}
                     {canShowSideBySide ? (
                       <>
                         {/* 第一行：知识点总量和通信节点并排显示 */}
-                        <Row
-                          gutter={isMobile ? 8 : 12}
-                          style={{ marginBottom: isMobile ? "8px" : "12px" }}
-                        >
-                          <Col span={12}>
+                        <div className="statistics-row primary-statistics-row">
+                          {/* 知识点总量卡片 */}
+                          <div className="statistics-card">
                             <Card
                               size="small"
                               style={{
                                 padding: isMobile ? "6px" : "8px",
                                 height: "100%",
+                                backgroundColor: "#f0f5ff",
+                                border: "1px solid #adc6ff",
+                                borderRadius: "6px",
+                                boxShadow: "0 2px 4px rgba(24, 144, 255, 0.1)",
                               }}
                             >
                               <Statistic
@@ -379,26 +409,42 @@ const MainLayout: React.FC = () => {
                                   <span
                                     style={{
                                       fontSize: isMobile ? "11px" : "12px",
+                                      color: "#1890ff",
+                                      fontWeight: "500",
                                     }}
                                   >
                                     知识点总量
                                   </span>
                                 }
                                 value={stats.totalEntities}
-                                prefix={<DatabaseOutlined />}
+                                prefix={
+                                  <DatabaseOutlined
+                                    style={{
+                                      color: "#1890ff",
+                                    }}
+                                  />
+                                }
                                 suffix="个"
                                 valueStyle={{
                                   fontSize: isMobile ? "16px" : "18px",
+                                  color: "#1890ff",
+                                  fontWeight: "600",
                                 }}
                               />
                             </Card>
-                          </Col>
-                          <Col span={12}>
+                          </div>
+
+                          {/* 通信类节点卡片 */}
+                          <div className="statistics-card">
                             <Card
                               size="small"
                               style={{
                                 padding: isMobile ? "6px" : "8px",
                                 height: "100%",
+                                backgroundColor: "#f6ffed",
+                                border: "1px solid #b7eb8f",
+                                borderRadius: "6px",
+                                boxShadow: "0 2px 4px rgba(82, 196, 26, 0.1)",
                               }}
                             >
                               <Statistic
@@ -406,90 +452,386 @@ const MainLayout: React.FC = () => {
                                   <span
                                     style={{
                                       fontSize: isMobile ? "11px" : "12px",
+                                      color: "#52c41a",
+                                      fontWeight: "500",
                                     }}
                                   >
                                     通信类节点
                                   </span>
                                 }
                                 value={stats.communicationCount}
-                                prefix={<WifiOutlined />}
+                                prefix={
+                                  <WifiOutlined
+                                    style={{
+                                      color: "#52c41a",
+                                    }}
+                                  />
+                                }
                                 suffix="个"
                                 valueStyle={{
                                   fontSize: isMobile ? "16px" : "18px",
+                                  color: "#52c41a",
+                                  fontWeight: "600",
                                 }}
                               />
                             </Card>
-                          </Col>
-                        </Row>
-                        {/* 分类统计区域 - 移除了Divider分隔线，保持简洁布局 */}
-                      </>
-                    ) : (
-                      // 当不能并排显示时，第一行保持知识点总量和通信节点卡片并排显示
-                      <div className="compact-statistics-row">
-                        {/* 总量统计卡片 */}
-                        <div className="compact-statistics-card">
-                          <Card
-                            size="small"
-                            style={{
-                              padding: isMobile ? "4px" : "6px",
-                              textAlign: "center",
-                              height: "100%",
-                            }}
-                          >
-                            <Statistic
-                              title={
-                                <span
-                                  style={{ fontSize: isMobile ? "8px" : "9px" }}
-                                >
-                                  知识点总量
-                                </span>
-                              }
-                              value={stats.totalEntities}
-                              prefix={
-                                <DatabaseOutlined
-                                  style={{ fontSize: isMobile ? "8px" : "9px" }}
-                                />
-                              }
-                              suffix="个"
-                              valueStyle={{
-                                fontSize: isMobile ? "12px" : "14px",
-                              }}
-                            />
-                          </Card>
+                          </div>
                         </div>
 
-                        {/* 通信类节点统计卡片 */}
-                        <div className="compact-statistics-card">
-                          <Card
-                            size="small"
-                            style={{
-                              padding: isMobile ? "4px" : "6px",
-                              textAlign: "center",
-                              height: "100%",
-                            }}
-                          >
-                            <Statistic
-                              title={
-                                <span
-                                  style={{ fontSize: isMobile ? "8px" : "9px" }}
-                                >
-                                  通信类节点
-                                </span>
-                              }
-                              value={stats.communicationCount}
-                              prefix={
-                                <WifiOutlined
-                                  style={{ fontSize: isMobile ? "8px" : "9px" }}
-                                />
-                              }
-                              suffix="个"
-                              valueStyle={{
-                                fontSize: isMobile ? "12px" : "14px",
+                        {/* 第二行：四个学科类别统计卡片 */}
+                        <div className="statistics-row domain-statistics-row">
+                          {/* 自然科学卡片 */}
+                          <div className="statistics-card">
+                            <Card
+                              size="small"
+                              style={{
+                                padding: isMobile ? "4px" : "6px",
+                                height: "100%",
                               }}
-                            />
-                          </Card>
+                            >
+                              <Statistic
+                                title={
+                                  <span
+                                    style={{
+                                      fontSize: isMobile ? "9px" : "10px",
+                                    }}
+                                  >
+                                    自然科学
+                                  </span>
+                                }
+                                value={stats.domainCounts.自然科学 || 0}
+                                prefix={<ExperimentOutlined />}
+                                suffix="个"
+                                valueStyle={{
+                                  fontSize: isMobile ? "14px" : "16px",
+                                }}
+                              />
+                            </Card>
+                          </div>
+
+                          {/* 电路与电子卡片 */}
+                          <div className="statistics-card">
+                            <Card
+                              size="small"
+                              style={{
+                                padding: isMobile ? "4px" : "6px",
+                                height: "100%",
+                              }}
+                            >
+                              <Statistic
+                                title={
+                                  <span
+                                    style={{
+                                      fontSize: isMobile ? "9px" : "10px",
+                                    }}
+                                  >
+                                    电路与电子
+                                  </span>
+                                }
+                                value={stats.domainCounts.电路与电子 || 0}
+                                prefix={<BulbOutlined />}
+                                suffix="个"
+                                valueStyle={{
+                                  fontSize: isMobile ? "14px" : "16px",
+                                }}
+                              />
+                            </Card>
+                          </div>
+
+                          {/* 计算机卡片 */}
+                          <div className="statistics-card">
+                            <Card
+                              size="small"
+                              style={{
+                                padding: isMobile ? "4px" : "6px",
+                                height: "100%",
+                              }}
+                            >
+                              <Statistic
+                                title={
+                                  <span
+                                    style={{
+                                      fontSize: isMobile ? "9px" : "10px",
+                                    }}
+                                  >
+                                    计算机
+                                  </span>
+                                }
+                                value={stats.domainCounts.计算机 || 0}
+                                prefix={<DesktopOutlined />}
+                                suffix="个"
+                                valueStyle={{
+                                  fontSize: isMobile ? "14px" : "16px",
+                                }}
+                              />
+                            </Card>
+                          </div>
+
+                          {/* 数学卡片 */}
+                          <div className="statistics-card">
+                            <Card
+                              size="small"
+                              style={{
+                                padding: isMobile ? "4px" : "6px",
+                                height: "100%",
+                              }}
+                            >
+                              <Statistic
+                                title={
+                                  <span
+                                    style={{
+                                      fontSize: isMobile ? "9px" : "10px",
+                                    }}
+                                  >
+                                    数学
+                                  </span>
+                                }
+                                value={stats.domainCounts.数学 || 0}
+                                prefix={<CalculatorOutlined />}
+                                suffix="个"
+                                valueStyle={{
+                                  fontSize: isMobile ? "14px" : "16px",
+                                }}
+                              />
+                            </Card>
+                          </div>
                         </div>
-                      </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* 当不能并排显示时，所有6个卡片组成一个水平排列的卡片组 */}
+                        <div className="compact-statistics-row">
+                          {/* 知识点总量卡片 */}
+                          <div className="compact-statistics-card primary">
+                            <Card
+                              size="small"
+                              style={{
+                                padding: isMobile ? "4px" : "6px",
+                                textAlign: "center",
+                                height: "100%",
+                                backgroundColor: "#f0f5ff",
+                                border: "1px solid #adc6ff",
+                                borderRadius: "8px",
+                                boxShadow: "0 2px 8px rgba(24, 144, 255, 0.15)",
+                              }}
+                            >
+                              <Statistic
+                                title={
+                                  <span
+                                    style={{
+                                      fontSize: isMobile ? "8px" : "9px",
+                                      color: "#1890ff",
+                                    }}
+                                  >
+                                    知识点总量
+                                  </span>
+                                }
+                                value={stats.totalEntities}
+                                prefix={
+                                  <DatabaseOutlined
+                                    style={{
+                                      fontSize: isMobile ? "8px" : "9px",
+                                      color: "#1890ff",
+                                    }}
+                                  />
+                                }
+                                suffix="个"
+                                valueStyle={{
+                                  fontSize: isMobile ? "12px" : "14px",
+                                  color: "#1890ff",
+                                }}
+                              />
+                            </Card>
+                          </div>
+
+                          {/* 通信类节点卡片 */}
+                          <div className="compact-statistics-card primary">
+                            <Card
+                              size="small"
+                              style={{
+                                padding: isMobile ? "4px" : "6px",
+                                textAlign: "center",
+                                height: "100%",
+                                backgroundColor: "#f6ffed",
+                                border: "1px solid #b7eb8f",
+                                borderRadius: "8px",
+                                boxShadow: "0 2px 8px rgba(82, 196, 26, 0.15)",
+                              }}
+                            >
+                              <Statistic
+                                title={
+                                  <span
+                                    style={{
+                                      fontSize: isMobile ? "8px" : "9px",
+                                      color: "#52c41a",
+                                    }}
+                                  >
+                                    通信类节点
+                                  </span>
+                                }
+                                value={stats.communicationCount}
+                                prefix={
+                                  <WifiOutlined
+                                    style={{
+                                      fontSize: isMobile ? "8px" : "9px",
+                                      color: "#52c41a",
+                                    }}
+                                  />
+                                }
+                                suffix="个"
+                                valueStyle={{
+                                  fontSize: isMobile ? "12px" : "14px",
+                                  color: "#52c41a",
+                                }}
+                              />
+                            </Card>
+                          </div>
+
+                          {/* 自然科学卡片 */}
+                          <div className="compact-statistics-card domain">
+                            <Card
+                              size="small"
+                              style={{
+                                padding: isMobile ? "3px" : "4px",
+                                textAlign: "center",
+                                height: "100%",
+                              }}
+                            >
+                              <Statistic
+                                title={
+                                  <span
+                                    style={{
+                                      fontSize: isMobile ? "7px" : "8px",
+                                    }}
+                                  >
+                                    自然科学
+                                  </span>
+                                }
+                                value={stats.domainCounts.自然科学 || 0}
+                                prefix={
+                                  <ExperimentOutlined
+                                    style={{
+                                      fontSize: isMobile ? "7px" : "8px",
+                                    }}
+                                  />
+                                }
+                                suffix="个"
+                                valueStyle={{
+                                  fontSize: isMobile ? "10px" : "12px",
+                                }}
+                              />
+                            </Card>
+                          </div>
+
+                          {/* 电路与电子卡片 */}
+                          <div className="compact-statistics-card domain">
+                            <Card
+                              size="small"
+                              style={{
+                                padding: isMobile ? "3px" : "4px",
+                                textAlign: "center",
+                                height: "100%",
+                              }}
+                            >
+                              <Statistic
+                                title={
+                                  <span
+                                    style={{
+                                      fontSize: isMobile ? "7px" : "8px",
+                                    }}
+                                  >
+                                    电路与电子
+                                  </span>
+                                }
+                                value={stats.domainCounts.电路与电子 || 0}
+                                prefix={
+                                  <BulbOutlined
+                                    style={{
+                                      fontSize: isMobile ? "7px" : "8px",
+                                    }}
+                                  />
+                                }
+                                suffix="个"
+                                valueStyle={{
+                                  fontSize: isMobile ? "10px" : "12px",
+                                }}
+                              />
+                            </Card>
+                          </div>
+
+                          {/* 计算机卡片 */}
+                          <div className="compact-statistics-card domain">
+                            <Card
+                              size="small"
+                              style={{
+                                padding: isMobile ? "3px" : "4px",
+                                textAlign: "center",
+                                height: "100%",
+                              }}
+                            >
+                              <Statistic
+                                title={
+                                  <span
+                                    style={{
+                                      fontSize: isMobile ? "7px" : "8px",
+                                    }}
+                                  >
+                                    计算机
+                                  </span>
+                                }
+                                value={stats.domainCounts.计算机 || 0}
+                                prefix={
+                                  <DesktopOutlined
+                                    style={{
+                                      fontSize: isMobile ? "7px" : "8px",
+                                    }}
+                                  />
+                                }
+                                suffix="个"
+                                valueStyle={{
+                                  fontSize: isMobile ? "10px" : "12px",
+                                }}
+                              />
+                            </Card>
+                          </div>
+
+                          {/* 数学卡片 */}
+                          <div className="compact-statistics-card domain">
+                            <Card
+                              size="small"
+                              style={{
+                                padding: isMobile ? "3px" : "4px",
+                                textAlign: "center",
+                                height: "100%",
+                              }}
+                            >
+                              <Statistic
+                                title={
+                                  <span
+                                    style={{
+                                      fontSize: isMobile ? "7px" : "8px",
+                                    }}
+                                  >
+                                    数学
+                                  </span>
+                                }
+                                value={stats.domainCounts.数学 || 0}
+                                prefix={
+                                  <CalculatorOutlined
+                                    style={{
+                                      fontSize: isMobile ? "7px" : "8px",
+                                    }}
+                                  />
+                                }
+                                suffix="个"
+                                valueStyle={{
+                                  fontSize: isMobile ? "10px" : "12px",
+                                }}
+                              />
+                            </Card>
+                          </div>
+                        </div>
+                      </>
                     )}
                   </div>
 

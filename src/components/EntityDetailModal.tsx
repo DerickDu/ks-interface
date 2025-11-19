@@ -3,6 +3,7 @@ import { Modal, Descriptions, Tag, Button, Space, Typography, Tabs, Divider, mes
 import { CopyOutlined, ExportOutlined } from '@ant-design/icons';
 import type { Entity, EntityDetail, EntitySourceDetail } from '../types';
 import { getEntityDetail, getEntitySources } from '../services/dataService';
+import styles from './EntityDetailModal.module.css';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -75,24 +76,7 @@ const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
   const CopyNotification = () => (
     showCopyNotification && (
       <div 
-        style={{
-          position: 'absolute',
-          top: '-40px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          backgroundColor: copyStatus === 'success' ? '#f6ffed' : '#fff2f0',
-          color: copyStatus === 'success' ? '#52c41a' : '#ff4d4f',
-          border: `1px solid ${copyStatus === 'success' ? '#b7eb8f' : '#ffccc7'}`,
-          borderRadius: '4px',
-          padding: '4px 8px',
-          fontSize: '12px',
-          zIndex: 1000,
-          whiteSpace: 'nowrap',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px'
-        }}
+        className={`${styles.copyNotification} ${styles[copyStatus]}`}
       >
         {copyStatus === 'success' ? '✓ 内容已复制到剪贴板' : '✗ 复制失败，请重试'}
       </div>
@@ -121,7 +105,7 @@ const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
   return (
     <Modal
       title={
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+        <div className={styles.modalTitle}>
           <span>知识点详情</span>
           <Space size="small" wrap>
           </Space>
@@ -130,7 +114,7 @@ const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
       open={visible}
       onCancel={onClose}
       footer={[
-        <div key="copy-container" style={{ position: 'relative', display: 'inline-block' }}>
+        <div key="copy-container" className={styles.copyContainer}>
           <Button icon={<CopyOutlined />} onClick={() => copyEntityJSON()}>
             复制JSON
           </Button>
@@ -188,8 +172,8 @@ const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
                   <div>
                     <Title level={5}>该知识点在以下路径中出现：</Title>
                     {entityDetail.paths.map((path, index) => (
-                      <div key={index} style={{ marginBottom: 8 }}>
-                        <Tag color="blue" style={{ fontSize: '14px', padding: '4px 8px' }}>
+                      <div key={index} className={styles.pathItem}>
+                        <Tag color="blue" className={styles.pathTag}>
                           {path}
                         </Tag>
                       </div>
@@ -216,35 +200,14 @@ const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
                 entitySources && entitySources.length > 0 ? (
                   <div>
                     <Title level={5}>该知识点的相关来源信息：</Title>
-                    <style>{`
-                      .source-table-wrapper {
-                        width: 100%;
-                      }
-                      .source-table-wrapper .ant-descriptions-view {
-                        width: 100%;
-                        table-layout: fixed;
-                      }
-                      .source-table-wrapper .ant-descriptions-item-label {
-                        width: 20%;
-                      }
-                      .source-table-wrapper .ant-descriptions-item-content {
-                        width: 80%;
-                      }
-                      @media (max-width: 768px) {
-                        .source-table-wrapper .ant-descriptions-item-label,
-                        .source-table-wrapper .ant-descriptions-item-content {
-                          width: 100%;
-                        }
-                      }
-                    `}</style>
                     {entitySources.map((source, index) => (
-                      <div key={source.source_id} className="source-table-wrapper" style={{ marginBottom: 16 }}>
+                      <div key={source.source_id} className={styles.sourceTableWrapper}>
                         <Descriptions column={1} bordered size="small">
                           <Descriptions.Item label="来源类型">
                             <Tag color="orange">{source.source_type}</Tag>
                           </Descriptions.Item>
                           <Descriptions.Item label="来源引用">
-                            <Text code style={{ wordBreak: 'break-all' }}>{source.source_ref}</Text>
+                            <Text code className={styles.sourceRef}>{source.source_ref}</Text>
                           </Descriptions.Item>
                           <Descriptions.Item label="创建时间">
                             {new Date(source.created_at).toLocaleString()}

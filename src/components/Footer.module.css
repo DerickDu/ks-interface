@@ -1,0 +1,32 @@
+.footer {
+  background: #001529;
+  color: rgba(255, 255, 255, 0.65);
+  padding: 20px 50px;
+}
+
+.footerContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.copyrightText {
+  color: rgba(255, 255, 255, 0.45);
+  text-align: center;
+}
+
+.footerLinks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+}
+
+.footerLink {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.divider {
+  border-color: rgba(255, 255, 255, 0.1);
+}

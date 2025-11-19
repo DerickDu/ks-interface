@@ -1,4 +1,5 @@
 import React from 'react';
+import styles from './CopyNotification.module.css';
 
 interface CopyNotificationProps {
   show: boolean;
@@ -18,26 +19,12 @@ const CopyNotification: React.FC<CopyNotificationProps> = ({
   const isSuccess = status === 'success';
   const defaultMessage = isSuccess ? '✓ 内容已复制到剪贴板' : '✗ 复制失败，请重试';
 
+  // 创建动态类名来处理不同的topOffset值
+  const offsetClass = `offset-${topOffset}`;
+  
   return (
     <div 
-      style={{
-        position: 'absolute',
-        top: `${topOffset}px`,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        backgroundColor: isSuccess ? '#f6ffed' : '#fff2f0',
-        color: isSuccess ? '#52c41a' : '#ff4d4f',
-        border: `1px solid ${isSuccess ? '#b7eb8f' : '#ffccc7'}`,
-        borderRadius: '4px',
-        padding: '4px 8px',
-        fontSize: '12px',
-        zIndex: 1000,
-        whiteSpace: 'nowrap',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px'
-      }}
+      className={`${styles.notification} ${styles[status]} ${styles[offsetClass]}`}
     >
       {message || defaultMessage}
     </div>
