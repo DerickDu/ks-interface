@@ -99,73 +99,87 @@ export const mockCatalogs: Catalog[] = [
   {
     entity_id: 'ENT001',
     path: '通信/通信技术/5G通信技术',
-    domain: '通信'
+    domain: '通信',
+    subDomain: '通信技术'
   },
   {
     entity_id: 'ENT002',
     path: '通信/通信技术/无线传输技术',
-    domain: '通信'
+    domain: '通信',
+    subDomain: '通信技术'
   },
   {
     entity_id: 'ENT003',
     path: '通信/通信技术/光纤通信',
-    domain: '通信'
+    domain: '通信',
+    subDomain: '通信技术'
   },
   {
     entity_id: 'ENT004',
     path: '通信/通信技术/信号调制技术',
-    domain: '通信'
+    domain: '通信',
+    subDomain: '通信技术'
   },
   {
     entity_id: 'ENT005',
     path: '通信/网络技术/网络协议',
-    domain: '通信'
+    domain: '通信',
+    subDomain: '网络技术'
   },
   {
     entity_id: 'ENT006',
     path: '通信/通信技术/卫星通信',
-    domain: '通信'
+    domain: '通信',
+    subDomain: '通信技术'
   },
   {
     entity_id: 'ENT007',
     path: '通信/网络技术/移动通信网络',
-    domain: '通信'
+    domain: '通信',
+    subDomain: '网络技术'
   },
   {
     entity_id: 'ENT008',
     path: '通信/通信技术/数据编码技术',
-    domain: '通信'
+    domain: '通信',
+    subDomain: '通信技术'
   },
   {
     entity_id: 'ENT009',
     path: '通信/通信技术/天线技术',
-    domain: '通信'
+    domain: '通信',
+    subDomain: '通信技术'
   },
   {
     entity_id: 'ENT010',
     path: '通信/安全/通信安全',
-    domain: '通信'
+    domain: '通信',
+    subDomain: '安全'
   },
   // 为某些实体添加多条路径
   {
     entity_id: 'ENT001',
     path: '通信/移动通信/5G通信技术',
-    domain: '通信'
+    domain: '通信',
+    subDomain: '移动通信'
   },
   {
     entity_id: 'ENT002',
     path: '通信/无线通信/无线传输技术',
-    domain: '通信'
+    domain: '通信',
+    subDomain: '无线通信'
   },
   {
     entity_id: 'ENT004',
     path: '通信/信号处理/信号调制技术',
-    domain: '通信'
+    domain: '通信',
+    subDomain: '信号处理'
   },
   {
     entity_id: 'ENT007',
     path: '通信/移动通信/移动通信网络',
-    domain: '通信'
+    domain: '通信',
+    subDomain: '移动通信'
   }
 ];
 

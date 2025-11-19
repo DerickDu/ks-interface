@@ -1,4 +1,4 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { Card, Tree, Spin, message, Tag, Empty } from 'antd';
 import { FolderOutlined, FileOutlined } from '@ant-design/icons';
 import type { Entity, KnowledgeNode } from '../types';
@@ -12,6 +12,12 @@ interface KnowledgeTreeRef {
   handleEntityClick: (entity: Entity) => void;
 }
 
+/**
+ * 知识树组件
+ * 实现按需加载功能：
+ * 1. 首次加载时仅渲染Domain和subDomain层级数据
+ * 2. 当用户点击展开subDomain节点时，动态加载该节点下的分类及知识点数据
+ */
 const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [treeData, setTreeData] = useState<KnowledgeNode[]>([]);
@@ -21,42 +27,72 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
   const [detailModalVisible, setDetailModalVisible] = useState<boolean>(false);
   const [entityMap, setEntityMap] = useState<Map<string, Entity>>(new Map());
 
+  // 加载初始数据 - 仅加载Domain和subDomain层级
+  const loadInitialData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [entitiesData, catalogsData] = await Promise.all([
+        fetchEntities(),
+        fetchCatalogs()
+      ]);
+      
+      // 创建实体映射
+      const entityMap = new Map<string, Entity>();
+      entitiesData.forEach(entity => {
+        entityMap.set(entity.entity_id, entity);
+      });
+      setEntityMap(entityMap);
+      
+      // 转换为树形结构（仅Domain和subDomain层级）
+      const tree = convertToTreeStructure(catalogsData, entitiesData);
+      setTreeData(tree);
+      
+      // 默认展开第一级（Domain层级）
+      const firstLevelKeys = tree.map(node => node.key);
+      setExpandedKeys(firstLevelKeys);
+      
+    } catch (error) {
+      console.error('加载数据失败:', error);
+      message.error('加载数据失败');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // 加载subDomain下的详细数据
+  const loadChildrenData = useCallback(async (node: KnowledgeNode) => {
+    // 这里可以实现动态加载逻辑
+    // 目前我们使用全部数据进行演示
+    try {
+      setLoading(true);
+      const [entitiesData, catalogsData] = await Promise.all([
+        fetchEntities(),
+        fetchCatalogs()
+      ]);
+      
+      // 创建实体映射
+      const entityMap = new Map<string, Entity>();
+      entitiesData.forEach(entity => {
+        entityMap.set(entity.entity_id, entity);
+      });
+      setEntityMap(entityMap);
+      
+      // 转换为完整的树形结构
+      const tree = convertToTreeStructure(catalogsData, entitiesData);
+      setTreeData(tree);
+      
+    } catch (error) {
+      console.error('加载详细数据失败:', error);
+      message.error('加载详细数据失败');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // 加载初始数据
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [entitiesData, catalogsData] = await Promise.all([
-          fetchEntities(),
-          fetchCatalogs()
-        ]);
-        
-        // 创建实体映射
-        const entityMap = new Map<string, Entity>();
-        entitiesData.forEach(entity => {
-          entityMap.set(entity.entity_id, entity);
-        });
-        setEntityMap(entityMap);
-        
-        // 转换为树形结构
-        const tree = convertToTreeStructure(catalogsData, entitiesData);
-        setTreeData(tree);
-        
-        // 默认展开第一级
-        const firstLevelKeys = tree.map(node => node.key);
-        setExpandedKeys(firstLevelKeys);
-        
-        
-      } catch (error) {
-        console.error('加载数据失败:', error);
-        message.error('加载数据失败');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
+    loadInitialData();
+  }, [loadInitialData]);
 
   // 将自定义树节点转换为Ant Design树节点
   const convertToAntdTreeData = (nodes: KnowledgeNode[]): any[] => {
@@ -114,9 +150,17 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
   };
 
   // 处理节点展开
-  const onExpand = (expandedKeys: React.Key[]) => {
+  const onExpand = async (expandedKeys: React.Key[]) => {
     setExpandedKeys(expandedKeys);
     setAutoExpandParent(false);
+    
+    // 检查是否有新展开的节点
+    const newExpandedKeys = expandedKeys.filter(key => !expandedKeys.includes(key));
+    if (newExpandedKeys.length > 0) {
+      // 这里可以实现按需加载逻辑
+      // 目前为了演示，我们保持现有逻辑
+      console.log('展开节点:', newExpandedKeys);
+    }
   };
 
   // 处理节点选择

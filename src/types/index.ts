@@ -14,6 +14,7 @@ export interface Catalog {
   entity_id: string;
   path: string;
   domain: string;
+  subDomain?: string;
 }
 
 // 知识体系树节点模型
