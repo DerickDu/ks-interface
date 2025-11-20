@@ -28,44 +28,103 @@ export const convertToTreeStructure = (
 
   // 处理所有路径
   catalogs.forEach(catalog => {
-    // 如果有subDomain字段，则构建两级结构：Domain -> subDomain -> 实体
+    // 如果有subDomain字段，需要检查路径的层级数
     if (catalog.subDomain) {
-      // 构建Domain层级
-      let domainNode = rootNodes.find(node => node.title === catalog.domain);
-      if (!domainNode) {
-        domainNode = {
-          key: `domain_${catalog.domain}`,
-          title: catalog.domain,
-          isLeaf: false,
-          children: []
-        };
-        rootNodes.push(domainNode);
-      }
+      const pathParts = catalog.path.split('/');
       
-      // 构建subDomain层级
-      let subDomainNode = domainNode.children?.find(node => node.title === catalog.subDomain);
-      if (!subDomainNode) {
-        subDomainNode = {
-          key: `domain_${catalog.domain}_sub_${catalog.subDomain}`,
-          title: catalog.subDomain,
-          isLeaf: false,
-          children: []
-        };
-        domainNode.children!.push(subDomainNode);
-      }
-      
-      // 添加实体节点
-      const entity = entityMap.get(catalog.entity_id);
-      if (entity) {
-        const entityNode: KnowledgeNode = {
-          key: `domain_${catalog.domain}_sub_${catalog.subDomain}_entity_${catalog.entity_id}`,
-          title: entity.entity_name,
-          isLeaf: true,
-          entityData: entity,
-          path: catalog.path,
-          domain: catalog.domain
-        };
-        subDomainNode.children!.push(entityNode);
+      // 如果路径层级大于2（即超过domain/subDomain结构），使用完整路径解析
+      if (pathParts.length > 2) {
+        // 使用完整路径解析方式，支持多层结构
+        let currentLevel = rootNodes;
+        let currentPath = '';
+
+        // 构建每一级的节点
+        pathParts.forEach((part, index) => {
+          currentPath = currentPath ? `${currentPath}/${part}` : part;
+          const isLeaf = index === pathParts.length - 1;
+          const existingNodeIndex = currentLevel.findIndex(node => node.title === part);
+
+          if (existingNodeIndex >= 0) {
+            // 节点已存在，移动到下一级
+            const existingNode = currentLevel[existingNodeIndex];
+            if (isLeaf && !existingNode.isLeaf) {
+              // 如果是叶子节点但现有节点不是，更新为叶子节点
+              existingNode.isLeaf = true;
+              const entity = entityMap.get(catalog.entity_id);
+              if (entity) {
+                existingNode.entityData = entity;
+              }
+              existingNode.path = catalog.path;
+              existingNode.domain = catalog.domain;
+            }
+            currentLevel = existingNode.children || [];
+          } else {
+            // 创建新节点
+            const newNode: KnowledgeNode = {
+              key: currentPath,
+              title: part,
+              isLeaf: isLeaf,
+              children: isLeaf ? undefined : []
+            };
+
+            // 如果是叶子节点，添加实体数据
+            if (isLeaf) {
+              const entity = entityMap.get(catalog.entity_id);
+              if (entity) {
+                newNode.entityData = entity;
+              }
+              newNode.path = catalog.path;
+              newNode.domain = catalog.domain;
+            }
+
+            currentLevel.push(newNode);
+            nodeMap.set(currentPath, newNode);
+            
+            // 如果不是叶子节点，继续处理下一级
+            if (!isLeaf) {
+              currentLevel = newNode.children || [];
+            }
+          }
+        });
+      } else {
+        // 路径层级等于2，使用原有的domain/subDomain结构
+        // 构建Domain层级
+        let domainNode = rootNodes.find(node => node.title === catalog.domain);
+        if (!domainNode) {
+          domainNode = {
+            key: `domain_${catalog.domain}`,
+            title: catalog.domain,
+            isLeaf: false,
+            children: []
+          };
+          rootNodes.push(domainNode);
+        }
+        
+        // 构建subDomain层级
+        let subDomainNode = domainNode.children?.find(node => node.title === catalog.subDomain);
+        if (!subDomainNode) {
+          subDomainNode = {
+            key: `domain_${catalog.domain}_sub_${catalog.subDomain}`,
+            title: catalog.subDomain,
+            isLeaf: false,
+            children: []
+          };
+          domainNode.children!.push(subDomainNode);
+        }
+        
+        // 添加实体节点
+        const entity = entityMap.get(catalog.entity_id);
+        if (entity) {
+          const entityNode: KnowledgeNode = {
+            key: `domain_${catalog.domain}_sub_${catalog.subDomain}_entity_${catalog.entity_id}`,
+            title: entity.entity_name,
+            isLeaf: true,
+            entityData: entity,
+            path: catalog.path,
+            domain: catalog.domain
+          };
+          subDomainNode.children!.push(entityNode);
+        }
       }
     } else {
       // 如果没有subDomain字段，保持原有的路径解析方式

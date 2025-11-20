@@ -66,35 +66,6 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
     }
   }, []);
 
-  // 加载subDomain下的详细数据
-  const loadChildrenData = useCallback(async (node: KnowledgeNode) => {
-    // 这里可以实现动态加载逻辑
-    // 目前我们使用全部数据进行演示
-    try {
-      setLoading(true);
-      const [entitiesData, catalogsData] = await Promise.all([
-        fetchEntities(),
-        fetchCatalogs(),
-      ]);
-
-      // 创建实体映射
-      const entityMap = new Map<string, Entity>();
-      entitiesData.forEach((entity) => {
-        entityMap.set(entity.entity_id, entity);
-      });
-      setEntityMap(entityMap);
-
-      // 转换为完整的树形结构
-      const tree = convertToTreeStructure(catalogsData, entitiesData);
-      setTreeData(tree);
-    } catch (error) {
-      console.error("加载详细数据失败:", error);
-      message.error("加载详细数据失败");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   // 加载初始数据
   useEffect(() => {
     loadInitialData();
@@ -208,8 +179,27 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
 
         // 设置容器宽度，增加一些padding
         setContainerWidth(Math.min(Math.max(maxWidth + 50, 400), 800));
+
+        // 调整滚动区域以适应内容高度变化
+        adjustScrollArea();
       }
     }, 100);
+  };
+
+  // 调整滚动区域以适应内容高度变化
+  const adjustScrollArea = () => {
+    if (treeContainerRef.current) {
+      const scrollContainer = treeContainerRef.current.querySelector(
+        `.${styles.scrollContainer}`
+      ) as HTMLElement;
+      if (scrollContainer) {
+        // 强制重新计算滚动区域高度
+        scrollContainer.style.height = "0px";
+        setTimeout(() => {
+          scrollContainer.style.height = "100%";
+        }, 10);
+      }
+    }
   };
 
   // 处理节点选择
@@ -258,22 +248,26 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
         } as React.CSSProperties
       }
     >
-      <Card>
-        <Spin spinning={loading}>
-          {treeData.length > 0 ? (
-            <Tree
-              showLine={{ showLeafIcon: false }}
-              treeData={convertToAntdTreeData(treeData)}
-              expandedKeys={expandedKeys}
-              autoExpandParent={autoExpandParent}
-              onExpand={onExpand}
-              onSelect={onSelect}
-              titleRender={titleRender}
-            />
-          ) : (
-            <Empty description="暂无数据" />
-          )}
-        </Spin>
+      <Card className={styles.treeCard}>
+        <div className={`${styles.scrollContainer} ${styles.smoothScroll}`}>
+          <Spin spinning={loading}>
+            {treeData.length > 0 ? (
+              <div className={styles.treeWrapper}>
+                <Tree
+                  showLine={{ showLeafIcon: false }}
+                  treeData={convertToAntdTreeData(treeData)}
+                  expandedKeys={expandedKeys}
+                  autoExpandParent={autoExpandParent}
+                  onExpand={onExpand}
+                  onSelect={onSelect}
+                  titleRender={titleRender}
+                />
+              </div>
+            ) : (
+              <Empty description="暂无数据" />
+            )}
+          </Spin>
+        </div>
       </Card>
 
       <EntityDetailModal
