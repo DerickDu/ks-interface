@@ -2,6 +2,14 @@
 
 这是一个用于管理和展示知识体系结构的前端界面，基于React、TypeScript和Ant Design开发。
 
+## 最新版本亮点
+
+### v1.3.0 主要更新
+- **多层级知识树支持**：优化知识树显示逻辑，支持3层、5层及7层知识点路径完整展示
+- **滚动体验升级**：实现平滑滚动和自适应高度，提升大数据量下的浏览体验
+- **实体详情增强**：新增"覆盖检测"标签页，为未来功能扩展预留接口
+- **UI精细化调整**：优化边框和背景样式，提升视觉体验和内容集中度
+
 ## 功能特性
 
 ### 知识树展示
@@ -63,6 +71,20 @@ interface Catalog {
 1. 首次加载时仅渲染 Domain 和 subDomain 层级数据
 2. 当用户展开 subDomain 节点时，动态加载该节点下的分类及知识点数据
 3. 通过优化的数据转换算法提升渲染性能
+4. 实现路径层级动态判断，支持3层、5层及7层知识点路径完整显示
+
+### 滚动功能实现
+1. 采用CSS模块化方案实现滚动容器样式
+2. 设置容器高度为calc(100vh - 200px)实现自适应
+3. 自定义滚动条样式，包括轨道、滑块和悬停效果
+4. 实现平滑滚动和节点展开/折叠时高度自适应
+5. 优化不同屏幕尺寸和设备的兼容性
+
+### 实体详情功能
+1. 采用Ant Design Tabs组件实现多标签页设计
+2. 为未来功能扩展预留"覆盖检测"标签页接口
+3. 实现响应式布局，适配不同屏幕尺寸
+4. 保持与现有tabs样式、交互一致性
 
 ## 开发指南
 
@@ -86,10 +108,15 @@ npm run build
 src/
 ├── components/          # React组件
 │   ├── CopyNotification.tsx # 复制通知组件
+│   ├── CopyNotification.module.css # 复制通知组件样式
 │   ├── EntityDetailModal.tsx # 实体详情模态框
+│   ├── EntityDetailModal.module.css # 实体详情模态框样式
 │   ├── Footer.tsx       # 页脚组件
+│   ├── Footer.module.css # 页脚组件样式
 │   ├── Header.tsx       # 页头组件
+│   ├── Header.module.css # 页头组件样式
 │   ├── KnowledgeTree.tsx # 知识树组件
+│   ├── KnowledgeTree.module.css # 知识树组件样式
 │   ├── MainLayout.tsx   # 主布局组件
 │   └── SearchComponent.tsx # 搜索组件
 ├── hooks/               # 自定义React钩子
