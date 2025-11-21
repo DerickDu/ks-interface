@@ -2,20 +2,20 @@
   padding: 24px;
   /* 移除背景色，使其透明或与上级容器一致 */
   width: 100%;
-  min-width: 400px;
+  /* 确保完全填充父容器 */
   transition: width 0.3s ease;
-  height: calc(100vh - 200px); /* 设置容器高度为视口高度减去其他元素高度 */
+  height: 100%; /* 设置容器高度为100%，填充父容器 */
   overflow: hidden; /* 隐藏溢出内容，由内部滚动容器处理 */
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box; /* 确保边框和内边距包含在高度内 */
+  /* 确保在小屏幕上也能正确显示 */
+  max-width: 100%;
 }
 
 .clickableTitle {
   cursor: pointer;
   user-select: none;
-}
-
-/* 动态宽度类 */
-.dynamicWidth {
-  width: var(--container-width, 400px); /* 使用CSS变量，默认400px */
 }
 
 /* 滚动容器样式 */

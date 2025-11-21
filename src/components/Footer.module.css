@@ -2,6 +2,8 @@
   background: #001529;
   color: rgba(255, 255, 255, 0.65);
   padding: 20px 50px;
+  position: relative; /* 改为相对定位，不固定在视口底部 */
+  width: 100%;
 }
 
 .footerContent {

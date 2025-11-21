@@ -30,6 +30,24 @@ body {
   overflow-x: hidden;
 }
 
+/* 确保整个页面可以滚动 */
+html, body {
+  height: 100%;
+  scroll-behavior: smooth;
+}
+
+/* 确保Layout组件可以正确处理内容溢出 */
+.ant-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.ant-layout-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
 h1 {
   font-size: 3.2em;
   line-height: 1.1;

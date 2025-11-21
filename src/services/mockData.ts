@@ -227,6 +227,15 @@ export const mockEntities: Entity[] = [
     validity_method: '标准验证',
     created_at: '2024-01-25T14:30:00Z',
     updated_at: '2024-04-20T16:40:00Z'
+  },
+  {
+    entity_id: 'ENT026',
+    entity_name: '量子通信技术',
+    description: '利用量子力学原理实现信息传输和处理的新型通信技术，具有理论上的绝对安全性。',
+    validity_result: '有效',
+    validity_method: '理论分析',
+    created_at: '2024-02-01T10:15:00Z',
+    updated_at: '2024-04-25T14:30:00Z'
   }
 ];
 
@@ -436,6 +445,14 @@ export const mockCatalogs: Catalog[] = [
     path: '通信/移动通信/5G技术/网络架构/计算架构/分布式计算/边缘计算',
     domain: '通信',
     subDomain: '移动通信'
+  },
+  
+  // 12层深度的知识点路径
+  {
+    entity_id: 'ENT026',
+    path: '通信/前沿通信技术/量子通信/量子密钥分发/BB84协议/量子态制备/单光子源/纠缠光子对/量子信道/量子测量/量子纠错/量子中继',
+    domain: '通信',
+    subDomain: '前沿通信技术'
   },
   
   // 为某些实体添加多条路径

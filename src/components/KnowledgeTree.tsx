@@ -33,7 +33,6 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
   const [detailModalVisible, setDetailModalVisible] = useState<boolean>(false);
   const [entityMap, setEntityMap] = useState<Map<string, Entity>>(new Map());
   const treeContainerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState<number>(400);
 
   // 加载初始数据 - 仅加载Domain和subDomain层级
   const loadInitialData = useCallback(async () => {
@@ -92,7 +91,7 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
 
       // 如果是叶子节点，使用标题直接显示而不用span包装
       if (node.isLeaf && node.entityData) {
-        antdNode.title = `• ${node.title}`;
+        antdNode.title = `${node.title}`;
       }
 
       return antdNode;
@@ -143,47 +142,8 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
       console.log("展开节点:", newExpandedKeys);
     }
 
-    // 实现自适应宽度功能
-    setTimeout(() => {
-      if (treeContainerRef.current) {
-        // 计算树容器中最大文本宽度
-        const treeNodes =
-          treeContainerRef.current.querySelectorAll(".ant-tree-treenode");
-        let maxWidth = 400; // 默认最小宽度
-
-        treeNodes.forEach((node) => {
-          const titleElement = node.querySelector(
-            ".ant-tree-node-content-wrapper"
-          );
-          if (titleElement) {
-            // 获取文本内容的实际宽度
-            const textContent = titleElement.textContent || "";
-            const tempElement = document.createElement("span");
-            tempElement.style.visibility = "hidden";
-            tempElement.style.position = "absolute";
-            tempElement.style.whiteSpace = "nowrap";
-            tempElement.style.fontFamily =
-              window.getComputedStyle(titleElement).fontFamily;
-            tempElement.style.fontSize =
-              window.getComputedStyle(titleElement).fontSize;
-            tempElement.textContent = textContent;
-            document.body.appendChild(tempElement);
-            const width = tempElement.offsetWidth;
-            document.body.removeChild(tempElement);
-
-            if (width > maxWidth) {
-              maxWidth = width;
-            }
-          }
-        });
-
-        // 设置容器宽度，增加一些padding
-        setContainerWidth(Math.min(Math.max(maxWidth + 50, 400), 800));
-
-        // 调整滚动区域以适应内容高度变化
-        adjustScrollArea();
-      }
-    }, 100);
+    // 调整滚动区域以适应内容高度变化
+    adjustScrollArea();
   };
 
   // 调整滚动区域以适应内容高度变化
@@ -241,14 +201,21 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
   return (
     <div
       ref={treeContainerRef}
-      className={`${styles.treeContainer} ${styles.dynamicWidth}`}
-      style={
-        {
-          "--container-width": `${containerWidth}px`,
-        } as React.CSSProperties
-      }
+      className={styles.treeContainer}
+      style={{
+        width: "100%", // 使用100%宽度，完全填充父容器
+        maxWidth: "100%", // 确保不超过父容器宽度
+        boxSizing: "border-box", // 确保边框和内边距包含在宽度内
+        padding: "12px",
+        borderRadius: "6px",
+      }}
     >
-      <Card className={styles.treeCard}>
+      <Card
+        className={styles.treeCard}
+        style={{
+          boxShadow: "0 1px 4px rgba(0, 0, 0, 0.08)",
+        }}
+      >
         <div className={`${styles.scrollContainer} ${styles.smoothScroll}`}>
           <Spin spinning={loading}>
             {treeData.length > 0 ? (
