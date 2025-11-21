@@ -19,7 +19,7 @@ const MainLayout: React.FC = () => {
   const knowledgeTreeRef = useRef<KnowledgeTreeRef | null>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [canShowSideBySide, setCanShowSideBySide] = useState(true); // 新增状态：是否能并排显示
-  const leftPanelRef = useRef<HTMLDivElement>(null); // 左侧面板引用
+  const leftPanelRef = useRef<HTMLDivElement>(null!); // 左侧面板引用，使用non-null断言确保类型匹配
   const rightPanelRef = useRef<HTMLDivElement>(null); // 右侧面板引用
 
   useEffect(() => {
