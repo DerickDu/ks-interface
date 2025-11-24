@@ -8,24 +8,15 @@ import React, {
 } from "react";
 import { Card, Tree, Spin, message, Empty, Button } from "antd";
 import { FolderOutlined, FileOutlined } from "@ant-design/icons";
-import type { Entity, Catalog } from "../types";
+import type { Entity } from "../types";
 import {
   fetchEntities,
   getDomainSubDomainData,
   getEntitiesBySubDomain,
+  type KnowledgeNode
 } from "../services/dataService";
 import EntityDetailModal from "./EntityDetailModal";
 import styles from "./KnowledgeTree.module.css";
-
-// 添加KnowledgeNode类型定义
-interface KnowledgeNode {
-  title: string;
-  key: string;
-  isLeaf: boolean;
-  children?: KnowledgeNode[];
-  entity_id?: string;
-  entityData?: Entity;
-}
 
 interface KnowledgeTreeRef {
   handleEntityClick: (entity: Entity) => void;
@@ -100,105 +91,7 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
     }));
   };
 
-  // 根据路径构建层级树结构
-  const buildPathTree = (
-    domain: string,
-    subDomain: string,
-    catalogs: Catalog[]
-  ): KnowledgeNode[] => {
-    // 过滤出与当前domain/subDomain相关的路径
-    const relevantCatalogs = catalogs.filter(
-      (catalog) => catalog.domain === domain && catalog.subDomain === subDomain
-    );
-
-    // 构建路径映射结构
-    const pathMap = new Map<
-      string,
-      { title: string; isLeaf: boolean; children: any[]; entity_id?: string }
-    >();
-
-    // 处理每个路径
-    relevantCatalogs.forEach((catalog) => {
-      // 按/分割路径
-      const pathParts = catalog.path.split("/");
-
-      // 跳过domain和subDomain部分（前两项）
-      const relativePathParts = pathParts.slice(2);
-
-      // 如果没有足够的层级（至少还需要一级），跳过
-      if (relativePathParts.length < 1) return;
-
-      let currentPath = "";
-
-      // 构建路径层级
-      for (let i = 0; i < relativePathParts.length; i++) {
-        const part = relativePathParts[i];
-        const isLast = i === relativePathParts.length - 1;
-
-        // 构建当前路径标识
-        currentPath = currentPath ? `${currentPath}/${part}` : part;
-        const fullKey = `${domain}/${subDomain}/${currentPath}`;
-
-        // 如果该路径节点不存在，则创建
-        if (!pathMap.has(fullKey)) {
-          pathMap.set(fullKey, {
-            title: part,
-            isLeaf: false, // 默认为非叶子节点，除非是最后一级且有entity_id
-            children: [],
-          });
-        }
-
-        // 如果是最后一级且有entity_id，则关联实体信息
-        if (isLast && catalog.entity_id) {
-          const node = pathMap.get(fullKey)!;
-          node.isLeaf = true;
-          node.entity_id = catalog.entity_id;
-        }
-      }
-    });
-
-    // 构建树结构
-    const rootNodes: KnowledgeNode[] = [];
-    const nodeMap = new Map<string, KnowledgeNode>();
-
-    // 先创建所有节点
-    pathMap.forEach((value, key) => {
-      const pathParts = key.split("/");
-      const title = value.title;
-      const node: KnowledgeNode = {
-        title,
-        key,
-        isLeaf: value.isLeaf,
-        children: [],
-        entity_id: value.entity_id,
-      };
-
-      nodeMap.set(key, node);
-
-      // 找出根节点（即直接在domain/subDomain下的节点）
-      if (pathParts.length === 3) {
-        // domain/subDomain/node
-        rootNodes.push(node);
-      }
-    });
-
-    // 构建父子关系
-    nodeMap.forEach((node, key) => {
-      const pathParts = key.split("/");
-
-      // 如果不是顶层节点，找到父节点并添加到其子节点中
-      if (pathParts.length > 3) {
-        const parentKey = pathParts.slice(0, -1).join("/");
-        const parentNode = nodeMap.get(parentKey);
-
-        if (parentNode) {
-          parentNode.children!.push(node);
-        }
-      }
-    });
-
-    return rootNodes;
-  };
+  // 删除不再需要的buildPathTree函数，因为后端直接返回树形结构
 
   // 加载子节点数据
   const onLoadData = async (nodeData: any): Promise<void> => {
@@ -209,7 +102,7 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
         return;
       }
 
-      // 直接从节点数据获取key值（不使用props）
+      // 直接从节点数据获取key值
       const key = nodeData.key;
 
       if (!key) {
@@ -224,48 +117,43 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
 
       // 判断是否为二级节点（subDomain节点）
       if (subDomain) {
-        // 对于二级节点，加载完整的目录和实体数据
-        const { catalogs, entities } = await getEntitiesBySubDomain(subDomain);
-
-        // 创建实体ID到实体数据的映射
-        const entityMap = new Map<string, Entity>();
-        entities.forEach((entity) => entityMap.set(entity.entity_id, entity));
-
-        // 构建完整的路径层级树
-        const hierarchicalNodes = buildPathTree(domain, subDomain, catalogs);
-
-        // 为叶子节点关联实体数据
-        const enhanceNodeWithEntityData = (
-          node: KnowledgeNode
-        ): KnowledgeNode => {
-          if (node.isLeaf && node.entity_id) {
-            const entity = entityMap.get(node.entity_id);
-            if (entity) {
-              node.entityData = entity;
+        // 对于二级节点，直接获取后端返回的树形结构数据
+        const treeNodes = await getEntitiesBySubDomain(domain, subDomain);
+        
+        // 更新实体映射，确保能通过entity_id找到对应的实体
+        const updateEntityMap = (nodes: KnowledgeNode[]) => {
+          nodes.forEach(node => {
+            if (node.entity_id) {
+              // 由于后端没有直接返回完整的entity对象，这里创建一个简化的entity对象
+              // 实际项目中可能需要额外调用API获取完整的entity数据
+              const entity: Entity = {
+                entity_id: node.entity_id.toString(),
+                entity_name: node.title,
+                description: '', // 可以通过额外API获取
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                status: 'active'
+              };
+              setEntityMap(prevMap => new Map(prevMap).set(node.entity_id.toString(), entity));
             }
-          }
-          if (node.children && node.children.length > 0) {
-            node.children = node.children.map((child) =>
-              enhanceNodeWithEntityData(child)
-            );
-          }
-          return node;
+            
+            // 递归处理子节点
+            if (node.children && node.children.length > 0) {
+              updateEntityMap(node.children);
+            }
+          });
         };
-
-        const enhancedNodes = hierarchicalNodes.map((node) =>
-          enhanceNodeWithEntityData(node)
-        );
-
+        
+        updateEntityMap(treeNodes);
+        
         // 更新树数据
         const newTreeData = [...treeData];
-        updateTreeData(newTreeData, key, enhancedNodes);
+        updateTreeData(newTreeData, key, treeNodes);
         setTreeData(newTreeData);
       }
     } catch (error) {
       console.error("加载子节点数据失败:", error);
       message.error("加载知识点数据失败，请稍后重试");
-    } finally {
-      // 不需要在节点数据上设置加载状态，Tree组件会自动处理
     }
   };
 
@@ -293,7 +181,7 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
   const convertToAntdTreeData = (nodes: KnowledgeNode[]): any[] => {
     return nodes.map((node) => {
       // 为每个节点生成唯一key，结合路径和entity_id，解决重复key问题
-      const nodeKey =
+      const nodeKey = 
         node.isLeaf && node.entity_id
           ? `${node.key}_${node.entity_id}`
           : node.key;
@@ -302,16 +190,11 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
         title: node.title,
         key: nodeKey,
         icon: node.isLeaf ? <FileOutlined /> : <FolderOutlined />,
-        children: node.children
+        children: node.children && node.children.length > 0
           ? convertToAntdTreeData(node.children)
           : undefined,
         isLeaf: node.isLeaf,
       };
-
-      // 如果是叶子节点，使用标题直接显示而不用span包装
-      if (node.isLeaf && node.entityData) {
-        antdNode.title = `${node.title}`;
-      }
 
       return antdNode;
     });

@@ -185,23 +185,51 @@ export const getPathsByDomainSubDomain = async (domain: string, subDomain?: stri
   return mockCatalogs.filter(catalog => catalog.domain === domain);
 };
 
-// 根据sub_domain获取知识点数据
-export const getEntitiesBySubDomain = async (subDomain: string): Promise<{catalogs: Catalog[], entities: Entity[]}> => {
+// 添加KnowledgeNode类型定义
+export interface KnowledgeNode {
+  title: string;
+  key: string;
+  isLeaf: boolean;
+  children: KnowledgeNode[];
+  entity_id: string | number | null;
+}
+
+// 根据domain和sub_domain获取知识点数据 - 直接返回树形结构数据
+export const getEntitiesBySubDomain = async (domain: string, subDomain?: string): Promise<KnowledgeNode[]> => {
   await delay(300);
   
-  // 1. 首先根据subDomain筛选目录数据
-  const filteredCatalogs = mockCatalogs.filter(catalog => catalog.subDomain === subDomain);
+  // 模拟后端直接返回的树形结构数据
+  // 实际项目中这里会发起真实的网络请求
+  // const response = await fetch(`/api/entities/domain/${domain}/subdomain/${subDomain}`);
+  // return await response.json();
   
-  // 2. 提取相关的entity_id列表
-  const entityIds = [...new Set(filteredCatalogs.map(catalog => catalog.entity_id))];
+  // 模拟数据 - 根据domain和subDomain返回对应的树形结构
+  const mockTreeData: KnowledgeNode[] = [
+    {
+      title: `${subDomain || domain} 示例1`,
+      key: `${domain}/${subDomain || ''}/示例1`,
+      isLeaf: false,
+      children: [
+        {
+          title: '示例叶子节点1',
+          key: `${domain}/${subDomain || ''}/示例1/叶子节点1`,
+          isLeaf: true,
+          children: [],
+          entity_id: '1001'
+        }
+      ],
+      entity_id: null
+    },
+    {
+      title: `${subDomain || domain} 示例2`,
+      key: `${domain}/${subDomain || ''}/示例2`,
+      isLeaf: true,
+      children: [],
+      entity_id: '1002'
+    }
+  ];
   
-  // 3. 根据entity_id获取对应的实体数据
-  const filteredEntities = mockEntities.filter(entity => entityIds.includes(entity.entity_id));
-  
-  return {
-    catalogs: filteredCatalogs,
-    entities: filteredEntities
-  };
+  return mockTreeData;
 };
 
 // 获取统计数据
