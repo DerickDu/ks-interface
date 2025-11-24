@@ -6,7 +6,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
-import { Card, Tree, Spin, message, Empty } from "antd";
+import { Card, Tree, Spin, message, Empty, Button } from "antd";
 import { FolderOutlined, FileOutlined } from "@ant-design/icons";
 import type { Entity, Catalog } from "../types";
 import {
@@ -30,6 +30,7 @@ interface KnowledgeNode {
 
 interface KnowledgeTreeRef {
   handleEntityClick: (entity: Entity) => void;
+  collapseAll: () => void;
 }
 
 /**
@@ -412,9 +413,27 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
     setDetailModalVisible(true);
   };
 
+  // 全部折叠方法
+  const collapseAll = useCallback(() => {
+    // 清空expandedKeys，只保留第一级节点（Domain层级）
+    const firstLevelKeys = treeData.map((node) => {
+      const nodeKey =
+        node.isLeaf && node.entity_id
+          ? `${node.key}_${node.entity_id}`
+          : node.key;
+      return nodeKey;
+    });
+    setExpandedKeys(firstLevelKeys);
+    setAutoExpandParent(false);
+    // 调整滚动区域
+    adjustScrollArea();
+    message.success("已全部折叠");
+  }, [treeData]);
+
   // 暴露方法给父组件
   useImperativeHandle(ref, () => ({
     handleEntityClick,
+    collapseAll,
   }));
 
   return (
@@ -434,6 +453,16 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
         style={{
           boxShadow: "0 1px 4px rgba(0, 0, 0, 0.08)",
         }}
+        extra={
+          <Button
+            type="default"
+            size="small"
+            onClick={collapseAll}
+            className={styles.collapseButton}
+          >
+            全部折叠
+          </Button>
+        }
       >
         <div className={`${styles.scrollContainer} ${styles.smoothScroll}`}>
           <Spin spinning={loading}>
