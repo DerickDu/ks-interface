@@ -8,11 +8,25 @@ import React, {
 } from "react";
 import { Card, Tree, Spin, message, Empty } from "antd";
 import { FolderOutlined, FileOutlined } from "@ant-design/icons";
-import type { Entity, KnowledgeNode } from "../types";
-import { fetchEntities, fetchCatalogs } from "../services/dataService";
-import { convertToTreeStructure } from "../utils/dataTransform";
+import type { Entity, Catalog } from "../types";
+import {
+  fetchEntities,
+  getDomainSubDomainData,
+  getPathsByDomainSubDomain,
+  getEntitiesBySubDomain,
+} from "../services/dataService";
 import EntityDetailModal from "./EntityDetailModal";
 import styles from "./KnowledgeTree.module.css";
+
+// 添加KnowledgeNode类型定义
+interface KnowledgeNode {
+  title: string;
+  key: string;
+  isLeaf: boolean;
+  children?: KnowledgeNode[];
+  entity_id?: string;
+  entityData?: Entity;
+}
 
 interface KnowledgeTreeRef {
   handleEntityClick: (entity: Entity) => void;
@@ -38,10 +52,9 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
   const loadInitialData = useCallback(async () => {
     try {
       setLoading(true);
-      const [entitiesData, catalogsData] = await Promise.all([
-        fetchEntities(),
-        fetchCatalogs(),
-      ]);
+      // 只获取一级和二级分类数据
+      const domainSubDomainData = await getDomainSubDomainData();
+      const entitiesData = await fetchEntities();
 
       // 创建实体映射
       const entityMap = new Map<string, Entity>();
@@ -50,8 +63,8 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
       });
       setEntityMap(entityMap);
 
-      // 转换为树形结构（仅Domain和subDomain层级）
-      const tree = convertToTreeStructure(catalogsData, entitiesData);
+      // 转换为树形结构（仅一级和二级节点，标记为可懒加载）
+      const tree = convertToTreeStructure(domainSubDomainData);
       setTreeData(tree);
 
       // 默认展开第一级（Domain层级）
@@ -70,13 +83,219 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
     loadInitialData();
   }, [loadInitialData]);
 
+  // 转换数据为树形结构（支持懒加载）
+  const convertToTreeStructure = (
+    domainSubDomainData: Array<{ domain: string; subDomains: string[] }>
+  ): KnowledgeNode[] => {
+    return domainSubDomainData.map((item) => ({
+      title: item.domain,
+      key: item.domain,
+      isLeaf: false,
+      children: item.subDomains.map((subDomain) => ({
+        title: subDomain,
+        key: `${item.domain}/${subDomain}`,
+        isLeaf: false, // 标记为非叶子节点，可懒加载
+        children: undefined,
+      })),
+    }));
+  };
+
+  // 根据路径构建层级树结构
+  const buildPathTree = (
+    domain: string,
+    subDomain: string,
+    catalogs: Catalog[]
+  ): KnowledgeNode[] => {
+    // 过滤出与当前domain/subDomain相关的路径
+    const relevantCatalogs = catalogs.filter(
+      (catalog) => catalog.domain === domain && catalog.subDomain === subDomain
+    );
+
+    // 构建路径映射结构
+    const pathMap = new Map<
+      string,
+      { title: string; isLeaf: boolean; children: any[]; entity_id?: string }
+    >();
+
+    // 处理每个路径
+    relevantCatalogs.forEach((catalog) => {
+      // 按/分割路径
+      const pathParts = catalog.path.split("/");
+
+      // 跳过domain和subDomain部分（前两项）
+      const relativePathParts = pathParts.slice(2);
+
+      // 如果没有足够的层级（至少还需要一级），跳过
+      if (relativePathParts.length < 1) return;
+
+      let currentPath = "";
+
+      // 构建路径层级
+      for (let i = 0; i < relativePathParts.length; i++) {
+        const part = relativePathParts[i];
+        const isLast = i === relativePathParts.length - 1;
+
+        // 构建当前路径标识
+        currentPath = currentPath ? `${currentPath}/${part}` : part;
+        const fullKey = `${domain}/${subDomain}/${currentPath}`;
+
+        // 如果该路径节点不存在，则创建
+        if (!pathMap.has(fullKey)) {
+          pathMap.set(fullKey, {
+            title: part,
+            isLeaf: false, // 默认为非叶子节点，除非是最后一级且有entity_id
+            children: [],
+          });
+        }
+
+        // 如果是最后一级且有entity_id，则关联实体信息
+        if (isLast && catalog.entity_id) {
+          const node = pathMap.get(fullKey)!;
+          node.isLeaf = true;
+          node.entity_id = catalog.entity_id;
+        }
+      }
+    });
+
+    // 构建树结构
+    const rootNodes: KnowledgeNode[] = [];
+    const nodeMap = new Map<string, KnowledgeNode>();
+
+    // 先创建所有节点
+    pathMap.forEach((value, key) => {
+      const pathParts = key.split("/");
+      const title = value.title;
+      const node: KnowledgeNode = {
+        title,
+        key,
+        isLeaf: value.isLeaf,
+        children: [],
+        entity_id: value.entity_id,
+      };
+
+      nodeMap.set(key, node);
+
+      // 找出根节点（即直接在domain/subDomain下的节点）
+      if (pathParts.length === 3) {
+        // domain/subDomain/node
+        rootNodes.push(node);
+      }
+    });
+
+    // 构建父子关系
+    nodeMap.forEach((node, key) => {
+      const pathParts = key.split("/");
+
+      // 如果不是顶层节点，找到父节点并添加到其子节点中
+      if (pathParts.length > 3) {
+        const parentKey = pathParts.slice(0, -1).join("/");
+        const parentNode = nodeMap.get(parentKey);
+
+        if (parentNode) {
+          parentNode.children!.push(node);
+        }
+      }
+    });
+
+    return rootNodes;
+  };
+
+  // 加载子节点数据
+  const onLoadData = async (nodeData: any): Promise<void> => {
+    try {
+      // 检查nodeData是否存在
+      if (!nodeData) {
+        console.error("无效的节点数据:", nodeData);
+        return;
+      }
+
+      // 直接从节点数据获取key值（不使用props）
+      const key = nodeData.key;
+
+      if (!key) {
+        console.error("节点缺少key值:", nodeData);
+        return;
+      }
+
+      // 从key中提取domain和subDomain信息
+      const keyParts = key.split("/");
+      const domain = keyParts[0];
+      const subDomain = keyParts.length > 1 ? keyParts[1] : undefined;
+
+      // 判断是否为二级节点（subDomain节点）
+      if (subDomain) {
+        // 对于二级节点，加载完整的目录和实体数据
+        const { catalogs, entities } = await getEntitiesBySubDomain(subDomain);
+
+        // 创建实体ID到实体数据的映射
+        const entityMap = new Map<string, Entity>();
+        entities.forEach((entity) => entityMap.set(entity.entity_id, entity));
+
+        // 构建完整的路径层级树
+        const hierarchicalNodes = buildPathTree(domain, subDomain, catalogs);
+
+        // 为叶子节点关联实体数据
+        const enhanceNodeWithEntityData = (
+          node: KnowledgeNode
+        ): KnowledgeNode => {
+          if (node.isLeaf && node.entity_id) {
+            const entity = entityMap.get(node.entity_id);
+            if (entity) {
+              node.entityData = entity;
+            }
+          }
+          if (node.children && node.children.length > 0) {
+            node.children = node.children.map((child) =>
+              enhanceNodeWithEntityData(child)
+            );
+          }
+          return node;
+        };
+
+        const enhancedNodes = hierarchicalNodes.map((node) =>
+          enhanceNodeWithEntityData(node)
+        );
+
+        // 更新树数据
+        const newTreeData = [...treeData];
+        updateTreeData(newTreeData, key, enhancedNodes);
+        setTreeData(newTreeData);
+      }
+    } catch (error) {
+      console.error("加载子节点数据失败:", error);
+      message.error("加载知识点数据失败，请稍后重试");
+    } finally {
+      // 不需要在节点数据上设置加载状态，Tree组件会自动处理
+    }
+  };
+
+  // 递归更新树数据
+  const updateTreeData = (
+    nodes: KnowledgeNode[],
+    targetKey: string,
+    newChildren: KnowledgeNode[]
+  ): boolean => {
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      if (node.key === targetKey) {
+        nodes[i] = { ...node, children: newChildren };
+        return true;
+      }
+      if (node.children) {
+        const found = updateTreeData(node.children, targetKey, newChildren);
+        if (found) return true;
+      }
+    }
+    return false;
+  };
+
   // 将自定义树节点转换为Ant Design树节点
   const convertToAntdTreeData = (nodes: KnowledgeNode[]): any[] => {
     return nodes.map((node) => {
       // 为每个节点生成唯一key，结合路径和entity_id，解决重复key问题
       const nodeKey =
-        node.isLeaf && node.entityData
-          ? `${node.key}_${node.entityData.entity_id}`
+        node.isLeaf && node.entity_id
+          ? `${node.key}_${node.entity_id}`
           : node.key;
 
       const antdNode: any = {
@@ -228,6 +447,7 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
                   onExpand={onExpand}
                   onSelect={onSelect}
                   titleRender={titleRender}
+                  loadData={onLoadData}
                 />
               </div>
             ) : (

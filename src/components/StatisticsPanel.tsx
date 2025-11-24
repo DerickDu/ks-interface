@@ -902,7 +902,7 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
                         )}
                         <span
                           style={{
-                            marginLeft: isMobile ? "2px" : "3px",
+                            marginLeft: isMobile ? "4px" : "5px",
                           }}
                         >
                           {type}

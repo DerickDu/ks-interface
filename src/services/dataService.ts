@@ -94,3 +94,65 @@ export const getAllDomains = async (): Promise<string[]> => {
   await delay(300);
   return [...new Set(mockCatalogs.map(c => c.domain))];
 };
+
+// 获取一级和二级分类数据（Domain和SubDomain）
+export const getDomainSubDomainData = async (): Promise<Array<{domain: string, subDomains: string[]}>> => {
+  await delay(300);
+  
+  // 创建一个Map来存储domain到subDomains的映射
+  const domainToSubDomains = new Map<string, Set<string>>();
+  
+  // 遍历所有catalog，提取不重复的domain和subDomain组合
+  mockCatalogs.forEach(catalog => {
+    if (!domainToSubDomains.has(catalog.domain)) {
+      domainToSubDomains.set(catalog.domain, new Set<string>());
+    }
+    // 添加非空检查，确保只有字符串类型才能添加到Set中
+    if (catalog.subDomain !== undefined) {
+      domainToSubDomains.get(catalog.domain)!.add(catalog.subDomain);
+    }
+  });
+  
+  // 转换为所需的数组格式
+  const result: Array<{domain: string, subDomains: string[]}> = [];
+  domainToSubDomains.forEach((subDomains, domain) => {
+    result.push({
+      domain,
+      subDomains: Array.from(subDomains)
+    });
+  });
+  
+  return result;
+};
+
+// 获取指定Domain和SubDomain下的所有路径数据（用于懒加载子节点）
+export const getPathsByDomainSubDomain = async (domain: string, subDomain?: string): Promise<Catalog[]> => {
+  await delay(300);
+  
+  if (subDomain) {
+    return mockCatalogs.filter(catalog => 
+      catalog.domain === domain && catalog.subDomain === subDomain
+    );
+  }
+  
+  return mockCatalogs.filter(catalog => catalog.domain === domain);
+};
+
+// 根据sub_domain获取知识点数据
+export const getEntitiesBySubDomain = async (subDomain: string): Promise<{catalogs: Catalog[], entities: Entity[]}> => {
+  await delay(300);
+  
+  // 1. 首先根据subDomain筛选目录数据
+  const filteredCatalogs = mockCatalogs.filter(catalog => catalog.subDomain === subDomain);
+  
+  // 2. 提取相关的entity_id列表
+  const entityIds = [...new Set(filteredCatalogs.map(catalog => catalog.entity_id))];
+  
+  // 3. 根据entity_id获取对应的实体数据
+  const filteredEntities = mockEntities.filter(entity => entityIds.includes(entity.entity_id));
+  
+  return {
+    catalogs: filteredCatalogs,
+    entities: filteredEntities
+  };
+};
