@@ -13,7 +13,7 @@ import {
   fetchEntities,
   getDomainSubDomainData,
   getEntitiesBySubDomain,
-  type KnowledgeNode
+  type KnowledgeNode,
 } from "../services/dataService";
 import EntityDetailModal from "./EntityDetailModal";
 import styles from "./KnowledgeTree.module.css";
@@ -54,8 +54,45 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
       });
       setEntityMap(entityMap);
 
+      // 自定义domain排序函数：将"通信"置顶，其他按照预设顺序排序
+      const sortDomains = (
+        domains: Array<{ domain: string; subDomains: string[] }>
+      ): Array<{ domain: string; subDomains: string[] }> => {
+        // 定义预设排序规则
+        const domainPriority = {
+          通信: 1, // 最高优先级
+          数学: 3,
+          计算机: 2,
+          自然科学: 4,
+          电路与电子: 5,
+          // 可以根据需要添加更多domain的优先级
+        };
+
+        return [...domains].sort((a, b) => {
+          // 检查是否有"通信"domain，确保它总是排在最前面
+          if (a.domain === "通信") return -1;
+          if (b.domain === "通信") return 1;
+
+          // 根据预设优先级排序
+          const priorityA =
+            (domainPriority as Record<string, number>)[a.domain] || 999; // 未指定优先级的放在最后
+          const priorityB =
+            (domainPriority as Record<string, number>)[b.domain] || 999;
+
+          if (priorityA !== priorityB) {
+            return priorityA - priorityB;
+          }
+
+          // 如果优先级相同，按名称字母顺序排序
+          return a.domain.localeCompare(b.domain);
+        });
+      };
+
+      // 对domain数据进行排序
+      const sortedDomainData = sortDomains(domainSubDomainData);
+
       // 转换为树形结构（仅一级和二级节点，标记为可懒加载）
-      const tree = convertToTreeStructure(domainSubDomainData);
+      const tree = convertToTreeStructure(sortedDomainData);
       setTreeData(tree);
 
       // 默认展开第一级（Domain层级）
@@ -119,33 +156,35 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
       if (subDomain) {
         // 对于二级节点，直接获取后端返回的树形结构数据
         const treeNodes = await getEntitiesBySubDomain(domain, subDomain);
-        
+
         // 更新实体映射，确保能通过entity_id找到对应的实体
         const updateEntityMap = (nodes: KnowledgeNode[]) => {
-          nodes.forEach(node => {
+          nodes.forEach((node) => {
             if (node.entity_id) {
               // 由于后端没有直接返回完整的entity对象，这里创建一个简化的entity对象
               // 实际项目中可能需要额外调用API获取完整的entity数据
               const entity: Entity = {
                 entity_id: node.entity_id.toString(),
                 entity_name: node.title,
-                description: '', // 可以通过额外API获取
+                description: "", // 可以通过额外API获取
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
-                status: 'active'
+                status: "active",
               };
-              setEntityMap(prevMap => new Map(prevMap).set(node.entity_id.toString(), entity));
+              setEntityMap((prevMap) =>
+                new Map(prevMap).set(node.entity_id.toString(), entity)
+              );
             }
-            
+
             // 递归处理子节点
             if (node.children && node.children.length > 0) {
               updateEntityMap(node.children);
             }
           });
         };
-        
+
         updateEntityMap(treeNodes);
-        
+
         // 更新树数据
         const newTreeData = [...treeData];
         updateTreeData(newTreeData, key, treeNodes);
@@ -181,7 +220,7 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
   const convertToAntdTreeData = (nodes: KnowledgeNode[]): any[] => {
     return nodes.map((node) => {
       // 为每个节点生成唯一key，结合路径和entity_id，解决重复key问题
-      const nodeKey = 
+      const nodeKey =
         node.isLeaf && node.entity_id
           ? `${node.key}_${node.entity_id}`
           : node.key;
@@ -190,9 +229,10 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
         title: node.title,
         key: nodeKey,
         icon: node.isLeaf ? <FileOutlined /> : <FolderOutlined />,
-        children: node.children && node.children.length > 0
-          ? convertToAntdTreeData(node.children)
-          : undefined,
+        children:
+          node.children && node.children.length > 0
+            ? convertToAntdTreeData(node.children)
+            : undefined,
         isLeaf: node.isLeaf,
       };
 

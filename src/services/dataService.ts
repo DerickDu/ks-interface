@@ -158,8 +158,35 @@ export const getDomainSubDomainData = async (): Promise<Array<{domain: string, s
       ],
       "key": "通信",
       "title": "通信"
-    }
-  ];
+    },
+    {
+      "children": [
+        { "key": "数学:数学基础", "title": "数学基础" },
+        { "key": "数学:数学应用", "title": "数学应用" },
+        { "key": "数学:数学原理", "title": "数学原理" },
+        { "key": "数学:数学公式", "title": "数学公式" },
+        { "key": "数学:数学计算", "title": "数学计算" },
+        { "key": "数学:数学分析", "title": "数学分析" },
+        { "key": "数学:数学统计", "title": "数学统计" },
+        { "key": "数学:数学优化", "title": "数学优化" }
+      ],
+      "key": "数学",
+      "title": "数学"
+    },
+    {
+      "children": [
+        { "key": "计算机:计算机基础", "title": "计算机基础" },
+        { "key": "计算机:计算机应用", "title": "计算机应用" },
+        { "key": "计算机:计算机原理", "title": "计算机原理" },
+        { "key": "计算机:计算机算法", "title": "计算机算法" },
+        { "key": "计算机:计算机网络", "title": "计算机网络" },
+        { "key": "计算机:计算机系统", "title": "计算机系统" },
+        { "key": "计算机:计算机安全", "title": "计算机安全" },
+        { "key": "计算机:计算机编程", "title": "计算机编程" }
+      ],
+      "key": "计算机",
+      "title": "计算机"
+  }];
   
   // 转换后端数据为组件期望的格式
   const result: Array<{domain: string, subDomains: string[]}> = backendData.map(item => {
