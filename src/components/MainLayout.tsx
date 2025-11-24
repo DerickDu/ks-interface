@@ -10,16 +10,18 @@ import type { Entity } from "../types";
 // 使用与KnowledgeTree组件中相同的接口定义
 interface KnowledgeTreeRef {
   handleEntityClick: (entity: Entity) => void;
+  collapseAll: () => void;
 }
 
 const { Content } = Layout;
 
 const MainLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const knowledgeTreeRef = useRef<KnowledgeTreeRef | null>(null);
+  const knowledgeTreeRef = useRef<KnowledgeTreeRef>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [canShowSideBySide, setCanShowSideBySide] = useState(true); // 新增状态：是否能并排显示
-  const leftPanelRef = useRef<HTMLDivElement>(null!); // 左侧面板引用，使用non-null断言确保类型匹配
+  const leftPanelRef = useRef<HTMLDivElement>(null); // 移除null!断言，使用安全的初始化
+  const statisticsPanelRef = useRef<HTMLDivElement | null>(null); // 为StatisticsPanel创建单独的ref
   const rightPanelRef = useRef<HTMLDivElement>(null); // 右侧面板引用
 
   useEffect(() => {
@@ -128,7 +130,7 @@ const MainLayout: React.FC = () => {
               <StatisticsPanel
                 isMobile={isMobile}
                 canShowSideBySide={canShowSideBySide}
-                panelRef={leftPanelRef}
+                panelRef={statisticsPanelRef} // 使用单独的ref给StatisticsPanel
               />
             </div>
           </Col>

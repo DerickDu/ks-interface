@@ -12,7 +12,6 @@ import type { Entity, Catalog } from "../types";
 import {
   fetchEntities,
   getDomainSubDomainData,
-  getPathsByDomainSubDomain,
   getEntitiesBySubDomain,
 } from "../services/dataService";
 import EntityDetailModal from "./EntityDetailModal";

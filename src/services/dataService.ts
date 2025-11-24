@@ -1,8 +1,52 @@
 import type { Entity, Catalog, SearchResult, EntityDetail, EntitySourceDetail } from '../types';
+
+// 统计数据接口
+export interface StatisticsData {
+  total_entities: number;
+  // 可以根据需要添加其他统计字段
+}
 import { mockEntities, mockCatalogs, mockEntitySources, mockEntitySourceMaps } from './mockData';
 
 // 模拟网络延迟
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// API基础URL，实际使用时应从配置中读取
+// const API_BASE_URL = '/api';
+
+// 通用API调用函数
+const callApi = async <T>(endpoint: string, _options?: RequestInit): Promise<T> => {
+  try {
+    // 实际项目中这里会发起真实的网络请求
+    // const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    //   ...options,
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //     ...options?.headers,
+    //   },
+    // });
+    
+    // if (!response.ok) {
+    //   throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+    // }
+    
+    // return await response.json();
+    
+    // 模拟API调用延迟
+    await delay(300);
+    
+    // 根据不同的endpoint返回模拟数据
+    if (endpoint === '/statistics') {
+      return {
+        total_entities: mockEntities.length,
+      } as T;
+    }
+    
+    throw new Error(`未实现的API端点: ${endpoint}`);
+  } catch (error) {
+    console.error(`API调用错误 (${endpoint}):`, error);
+    throw error;
+  }
+}
 
 // 模拟从PostgreSQL获取实体数据
 export const fetchEntities = async (): Promise<Entity[]> => {
@@ -99,27 +143,30 @@ export const getAllDomains = async (): Promise<string[]> => {
 export const getDomainSubDomainData = async (): Promise<Array<{domain: string, subDomains: string[]}>> => {
   await delay(300);
   
-  // 创建一个Map来存储domain到subDomains的映射
-  const domainToSubDomains = new Map<string, Set<string>>();
-  
-  // 遍历所有catalog，提取不重复的domain和subDomain组合
-  mockCatalogs.forEach(catalog => {
-    if (!domainToSubDomains.has(catalog.domain)) {
-      domainToSubDomains.set(catalog.domain, new Set<string>());
+  // 模拟新的后端返回数据格式
+  const backendData = [
+    {
+      "children": [
+        { "key": "通信:通信安全", "title": "通信安全" },
+        { "key": "通信:通信应用", "title": "通信应用" },
+        { "key": "通信:通信技术", "title": "通信技术" },
+        { "key": "通信:通信设备", "title": "通信设备" },
+        { "key": "通信:通信标准", "title": "通信标准" },
+        { "key": "通信:通信原理", "title": "通信原理" },
+        { "key": "通信:通信协议", "title": "通信协议" },
+        { "key": "通信:通信网络", "title": "通信网络" }
+      ],
+      "key": "通信",
+      "title": "通信"
     }
-    // 添加非空检查，确保只有字符串类型才能添加到Set中
-    if (catalog.subDomain !== undefined) {
-      domainToSubDomains.get(catalog.domain)!.add(catalog.subDomain);
-    }
-  });
+  ];
   
-  // 转换为所需的数组格式
-  const result: Array<{domain: string, subDomains: string[]}> = [];
-  domainToSubDomains.forEach((subDomains, domain) => {
-    result.push({
-      domain,
-      subDomains: Array.from(subDomains)
-    });
+  // 转换后端数据为组件期望的格式
+  const result: Array<{domain: string, subDomains: string[]}> = backendData.map(item => {
+    return {
+      domain: item.title,
+      subDomains: item.children.map(child => child.title)
+    };
   });
   
   return result;
@@ -155,4 +202,40 @@ export const getEntitiesBySubDomain = async (subDomain: string): Promise<{catalo
     catalogs: filteredCatalogs,
     entities: filteredEntities
   };
+};
+
+// 获取统计数据
+export const fetchStatisticsData = async (): Promise<StatisticsData> => {
+  try {
+    // 调用通用API函数获取统计数据
+    return await callApi<StatisticsData>('/statistics');
+  } catch (error) {
+    // 如果API调用失败，返回默认值并记录错误
+    console.error('获取统计数据失败:', error);
+    throw error;
+  }
+};
+
+// 获取各领域知识点数量
+export const fetchDomainStatistics = async (): Promise<Record<string, number>> => {
+  try {
+    // 实际项目中，这里会调用真实的API端点
+    // const response = await fetch(`${API_BASE_URL}/statistics/domains`);
+    // return await response.json();
+    
+    // 模拟API调用延迟
+    await delay(300);
+    
+    // 模拟返回的JSON格式数据，其中key是领域名称，value是对应的知识点数量
+    return {
+      "通信": mockCatalogs.filter(c => c.domain === "通信").length,
+      "数学": mockCatalogs.filter(c => c.domain === "数学").length,
+      "计算机": mockCatalogs.filter(c => c.domain === "计算机").length,
+      "自然科学": mockCatalogs.filter(c => c.domain === "自然科学").length,
+      "电路与电子": mockCatalogs.filter(c => c.domain === "电路与电子").length,
+    };
+  } catch (error) {
+    console.error('获取领域统计数据失败:', error);
+    throw error;
+  }
 };

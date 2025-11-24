@@ -20,6 +20,8 @@ import {
   fetchEntities,
   fetchCatalogs,
   getEntitySources,
+  fetchStatisticsData,
+  fetchDomainStatistics,
 } from "../services/dataService";
 import type { EntitySourceDetail } from "../types";
 
@@ -166,7 +168,7 @@ const responsiveStyles = `
 interface StatisticsPanelProps {
   isMobile: boolean;
   canShowSideBySide: boolean;
-  panelRef: React.RefObject<HTMLDivElement>;
+  panelRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
@@ -175,6 +177,9 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
   panelRef,
 }) => {
   const [loading, setLoading] = useState(true);
+  // 确保useRef被使用
+  const internalRef = useRef<HTMLDivElement>(null);
+  const refToUse = panelRef || internalRef;
   const [isSourceCollapsed, setIsSourceCollapsed] = useState(false);
   const [stats, setStats] = useState({
     totalEntities: 0,
@@ -187,6 +192,13 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
       数学: 0,
     },
     sourceTypes: {} as Record<string, number>,
+  });
+
+  // 错误状态管理
+  const [errors, setErrors] = useState({
+    statistics: null as string | null,
+    catalogs: null as string | null,
+    sources: null as string | null,
   });
 
   // 注入响应式样式
@@ -205,47 +217,153 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
 
   // 获取统计数据
   useEffect(() => {
+    // 重置错误状态
+    setErrors({
+      statistics: null,
+      catalogs: null,
+      sources: null,
+    });
+
     const loadStats = async () => {
       try {
         setLoading(true);
-        // 获取所有数据
-        const [entitiesData, catalogsData] = await Promise.all([
-          fetchEntities(),
-          fetchCatalogs(),
-        ]);
 
-        // 计算统计数据
-        const totalEntities = entitiesData.length;
+        // 分别获取数据，允许部分失败
+        let statisticsData = { total_entities: 0 };
+        let catalogsData: any[] = [];
+        let entitiesData: any[] = [];
 
-        // 计算通信类节点数量（根据mock数据，所有节点都在通信领域）
-        const communicationCount = catalogsData.filter(
-          (c) => c.domain === "通信"
-        ).length;
-
-        // 计算各Domain分类节点数量
-        const domainCounts = {
-          通信: catalogsData.filter((c) => c.domain === "通信").length,
-          自然科学: catalogsData.filter((c) => c.domain === "自然科学").length,
-          电路与电子: catalogsData.filter((c) => c.domain === "电路与电子")
-            .length,
-          计算机: catalogsData.filter((c) => c.domain === "计算机").length,
-          数学: catalogsData.filter((c) => c.domain === "数学").length,
-        };
-
-        // 计算来源类型统计
-        // 先获取所有实体的源信息
-        const allSources: EntitySourceDetail[] = [];
-        for (const entity of entitiesData) {
-          const entitySources = await getEntitySources(entity.entity_id);
-          allSources.push(...entitySources);
+        // 获取统计数据，带错误处理和fallback
+        try {
+          statisticsData = await fetchStatisticsData();
+          // 验证数据格式
+          if (
+            !statisticsData ||
+            typeof statisticsData.total_entities !== "number"
+          ) {
+            throw new Error("统计数据格式异常");
+          }
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : "未知错误";
+          setErrors((prev) => ({
+            ...prev,
+            statistics: `获取知识点总量失败: ${errorMessage}`,
+          }));
+          console.error("获取统计数据失败:", error);
+          // 使用fallback值，确保界面不崩溃
+          statisticsData = { total_entities: 0 };
         }
 
-        // 统计来源类型
+        // 获取目录数据
+        try {
+          catalogsData = await fetchCatalogs();
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : "未知错误";
+          setErrors((prev) => ({
+            ...prev,
+            catalogs: `获取分类数据失败: ${errorMessage}`,
+          }));
+          console.error("获取目录数据失败:", error);
+          // 使用空数组作为fallback
+          catalogsData = [];
+        }
+
+        // 获取实体数据（用于来源统计）
+        try {
+          entitiesData = await fetchEntities();
+        } catch (error) {
+          console.error("获取实体数据失败:", error);
+          // 实体数据失败不影响主要功能，只记录日志
+          entitiesData = [];
+        }
+
+        // 从API返回结果中提取total_entities字段
+        const totalEntities = statisticsData.total_entities;
+
+        // 计算通信类节点数量
+        const communicationCount = catalogsData.filter(
+          (c) => c?.domain === "通信"
+        ).length;
+
+        // 从API获取各领域知识点数量
+        let domainCounts = {
+          通信: 0,
+          自然科学: 0,
+          电路与电子: 0,
+          计算机: 0,
+          数学: 0,
+        };
+        
+        try {
+          const apiDomainCounts = await fetchDomainStatistics();
+          // 确保返回的数据包含所有需要的字段
+          domainCounts = {
+            通信: apiDomainCounts["通信"] || 0,
+            自然科学: apiDomainCounts["自然科学"] || 0,
+            电路与电子: apiDomainCounts["电路与电子"] || 0,
+            计算机: apiDomainCounts["计算机"] || 0,
+            数学: apiDomainCounts["数学"] || 0,
+          };
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "未知错误";
+          setErrors((prev) => ({
+            ...prev,
+            catalogs: `获取领域统计数据失败: ${errorMessage}`,
+          }));
+          console.error("获取领域统计数据失败:", error);
+          
+          // 如果API调用失败，使用本地计算作为fallback
+          domainCounts = {
+            通信: catalogsData.filter((c) => c?.domain === "通信").length,
+            自然科学: catalogsData.filter((c) => c?.domain === "自然科学").length,
+            电路与电子: catalogsData.filter((c) => c?.domain === "电路与电子").length,
+            计算机: catalogsData.filter((c) => c?.domain === "计算机").length,
+            数学: catalogsData.filter((c) => c?.domain === "数学").length,
+          };
+        }
+
+        // 计算来源类型统计，带错误处理
         const sourceTypes: Record<string, number> = {};
-        allSources.forEach((source) => {
-          sourceTypes[source.source_type] =
-            (sourceTypes[source.source_type] || 0) + 1;
-        });
+        try {
+          const allSources: EntitySourceDetail[] = [];
+          // 限制获取的实体数量，避免请求过多
+          const limitedEntities = entitiesData.slice(0, 100);
+
+          for (const entity of limitedEntities) {
+            if (entity?.entity_id) {
+              try {
+                const entitySources = await getEntitySources(entity.entity_id);
+                if (Array.isArray(entitySources)) {
+                  allSources.push(...entitySources);
+                }
+              } catch (sourceError) {
+                // 单个实体的源数据获取失败不影响整体
+                console.error(
+                  `获取实体 ${entity.entity_id} 的源数据失败:`,
+                  sourceError
+                );
+              }
+            }
+          }
+
+          // 统计来源类型
+          allSources.forEach((source) => {
+            if (source?.source_type) {
+              sourceTypes[source.source_type] =
+                (sourceTypes[source.source_type] || 0) + 1;
+            }
+          });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : "未知错误";
+          setErrors((prev) => ({
+            ...prev,
+            sources: `获取来源统计失败: ${errorMessage}`,
+          }));
+          console.error("获取来源统计失败:", error);
+        }
 
         setStats({
           totalEntities,
@@ -254,7 +372,11 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
           sourceTypes,
         });
       } catch (error) {
-        console.error("获取统计数据失败:", error);
+        console.error("加载统计数据时发生未预期的错误:", error);
+        // 确保界面有基本数据显示
+        if (stats.totalEntities === 0) {
+          setStats((prev) => ({ ...prev, totalEntities: 0 }));
+        }
       } finally {
         setLoading(false);
       }
@@ -272,18 +394,45 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
     }
   }, [canShowSideBySide]);
 
+  // 渲染错误提示
+  const renderErrorAlerts = () => {
+    const visibleErrors = Object.values(errors).filter(Boolean);
+    if (visibleErrors.length === 0) return null;
+
+    return (
+      <div
+        style={{
+          marginBottom: "12px",
+          padding: "8px 12px",
+          backgroundColor: "#fff2f0",
+          border: "1px solid #ffccc7",
+          borderRadius: "4px",
+        }}
+      >
+        {visibleErrors.map((error, index) => (
+          <div
+            key={index}
+            style={{
+              color: "#ff4d4f",
+              fontSize: isMobile ? "12px" : "14px",
+              marginBottom: index < visibleErrors.length - 1 ? "4px" : "0",
+            }}
+          >
+            ⚠️ {error}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div
-      ref={panelRef}
+      ref={refToUse}
       style={{
-        // 完全移除高度限制，让内容完全自适应
-        // height: "100%",
-        // minHeight: "200px",
         backgroundColor: "#fff",
         borderRadius: "6px",
         padding: isMobile ? "8px" : "12px",
         boxShadow: "0 1px 4px rgba(0, 0, 0, 0.08)",
-        // 完全移除overflow限制，让内容自由扩展
         overflow: "visible",
         display: "flex",
         flexDirection: "column",
@@ -291,6 +440,18 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
       }}
     >
       <Spin spinning={loading}>
+        {/* 显示错误提示 */}
+        {renderErrorAlerts()}
+        {!loading && errors.statistics && (
+          <div style={{ textAlign: "center", marginBottom: "12px" }}>
+            <Tag
+              color="warning"
+              style={{ fontSize: isMobile ? "12px" : "14px" }}
+            >
+              部分数据加载异常，但不影响核心功能
+            </Tag>
+          </div>
+        )}
         <div>
           <h2
             style={{
