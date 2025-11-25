@@ -73,28 +73,95 @@ export const getCatalogsByEntityId = async (entityId: string): Promise<Catalog[]
   return mockCatalogs.filter(c => c.entity_id === entityId);
 };
 
+// 定义搜索API响应格式
+export interface SearchAPIResponse {
+  data: Array<{
+    created_at: string;
+    description: string | null;
+    domain: string;
+    entity_id: number;
+    entity_name: string;
+    path: string;
+    updated_at: string;
+    validity_method: string | null;
+    validity_result: string | null;
+  }>;
+  status: string;
+  message: string;
+}
+
 // 搜索实体
-export const searchEntities = async (keyword: string): Promise<SearchResult[]> => {
+export const searchEntities = async (keyword: string): Promise<SearchAPIResponse> => {
   await delay(500);
   
-  if (!keyword.trim()) return [];
+  if (!keyword.trim()) {
+    return {
+      data: [],
+      status: "success",
+      message: "查询成功"
+    };
+  }
   
   const lowerKeyword = keyword.toLowerCase();
-  const matchedEntities = mockEntities.filter(entity => 
-    entity.entity_name.toLowerCase().includes(lowerKeyword) ||
-    entity.description.toLowerCase().includes(lowerKeyword)
+  
+  // 模拟API返回的数据
+  const mockSearchData = [
+    {
+      created_at: "2025-11-20T10:42:57.486007",
+      description: "安全文件传输协议，用于安全地传输文件",
+      domain: "计算机",
+      entity_id: 1126,
+      entity_name: "SFTP",
+      path: "计算机/计算机网络/通信协议/协议分层/应用层协议",
+      updated_at: "2025-11-20T10:42:57.486007",
+      validity_method: null,
+      validity_result: null
+    },
+    {
+      created_at: "2025-11-20T10:42:57.486007",
+      description: "简单文件传输协议，用于简单文件传输场景",
+      domain: "通信",
+      entity_id: 2702,
+      entity_name: "TFTP",
+      path: "通信/通信协议/应用层协议/SFTP/FTP",
+      updated_at: "2025-11-20T10:42:57.486007",
+      validity_method: null,
+      validity_result: null
+    },
+    {
+      created_at: "2025-11-20T10:42:57.486007",
+      description: "文件传输协议，用于在网络上传输文件",
+      domain: "计算机",
+      entity_id: 3801,
+      entity_name: "FTP",
+      path: "计算机/计算机网络/通信协议/应用层协议/FTP",
+      updated_at: "2025-11-20T10:42:57.486007",
+      validity_method: null,
+      validity_result: null
+    },
+    {
+      created_at: "2025-11-20T10:42:57.486007",
+      description: "超文本传输协议，用于Web数据传输",
+      domain: "通信",
+      entity_id: 4905,
+      entity_name: "HTTP",
+      path: "通信/通信协议/应用层协议/HTTP",
+      updated_at: "2025-11-20T10:42:57.486007",
+      validity_method: null,
+      validity_result: null
+    }
+  ];
+  
+  // 根据关键词过滤数据
+  const filteredData = mockSearchData.filter(item => 
+    item.entity_name.toLowerCase().includes(lowerKeyword)
   );
   
-  const results: SearchResult[] = matchedEntities.map(entity => {
-    const catalogs = mockCatalogs.filter(c => c.entity_id === entity.entity_id);
-    return {
-      entity: { ...entity },
-      paths: catalogs.map(c => c.path),
-      domains: [...new Set(catalogs.map(c => c.domain))]
-    };
-  });
-  
-  return results;
+  return {
+    data: filteredData,
+    status: "success",
+    message: "查询成功"
+  };
 };
 
 // 获取实体详情（包含路径信息）

@@ -22,7 +22,7 @@ import {
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import type { Entity, SearchResult } from "../types";
-import { searchEntities } from "../services/dataService";
+import { searchEntities, type SearchAPIResponse } from "../services/dataService";
 import styles from "./Header.module.css";
 
 const { Header: AntHeader } = Layout;
@@ -79,9 +79,28 @@ const Header: React.FC<HeaderProps> = ({
 
     setSearchLoading(true);
     try {
-      const results = await searchEntities(searchValue.trim());
-      setSearchResults(results);
-      setShowSearchResults(true);
+      const response = await searchEntities(searchValue.trim());
+      
+      if (response.status === "success" && response.data) {
+        // 将API返回的数据转换为SearchResult格式
+        const formattedResults: SearchResult[] = response.data.map(item => {
+          const entity: Entity = {
+            entity_id: String(item.entity_id),
+            entity_name: item.entity_name,
+            description: item.description || "",
+            validity_result: item.validity_result || "未知",
+          };
+          
+          return {
+            entity,
+            paths: [item.path],
+            domains: [item.domain]
+          };
+        });
+        
+        setSearchResults(formattedResults);
+        setShowSearchResults(true);
+      }
     } catch (error) {
       console.error("搜索失败:", error);
       setSearchResults([]);
