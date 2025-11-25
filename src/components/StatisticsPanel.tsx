@@ -15,6 +15,11 @@ import {
   BulbOutlined,
   DesktopOutlined,
   CalculatorOutlined,
+  FileAddOutlined,
+  FileImageOutlined,
+  FileMarkdownOutlined,
+  FileExcelOutlined,
+  FileUnknownOutlined,
 } from "@ant-design/icons";
 import {
   fetchEntities,
@@ -171,6 +176,82 @@ interface StatisticsPanelProps {
   panelRef?: React.RefObject<HTMLDivElement | null>;
 }
 
+// 定义来源类型配置接口
+interface SourceTypeConfig {
+  color: string;
+  icon: React.ReactNode;
+}
+
+// 预定义的颜色选项
+const COLOR_OPTIONS = [
+  "blue",
+  "green",
+  "orange",
+  "purple",
+  "cyan",
+  "magenta",
+  "gold",
+  "volcano",
+  "geekblue",
+  "lime",
+  "red",
+  "lime",
+  "yellow",
+  "pink",
+  "lime",
+  "lime",
+];
+
+// 预定义的图标选项
+const ICON_COMPONENTS = [
+  FileTextOutlined,
+  BookOutlined,
+  AuditOutlined,
+  FilePdfOutlined,
+  ProfileOutlined,
+  ReadOutlined,
+  SnippetsOutlined,
+  FileWordOutlined,
+  FileAddOutlined,
+  FileImageOutlined,
+  FileMarkdownOutlined,
+  FileExcelOutlined,
+  FileUnknownOutlined,
+];
+
+// 为来源类型生成配置的工具函数
+const getSourceTypeConfig = (() => {
+  // 使用闭包缓存已生成的配置，确保相同类型总是得到相同的样式
+  const configCache = new Map<string, SourceTypeConfig>();
+
+  return (sourceType: string): SourceTypeConfig => {
+    // 如果该类型已经有配置，则直接返回
+    if (configCache.has(sourceType)) {
+      return configCache.get(sourceType)!;
+    }
+
+    // 基于来源类型名称生成一个确定性的哈希值
+    const hash = sourceType
+      .split("")
+      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
+    // 使用哈希值从预定义选项中选择颜色和图标
+    const colorIndex = hash % COLOR_OPTIONS.length;
+    const iconIndex = hash % ICON_COMPONENTS.length;
+
+    const color = COLOR_OPTIONS[colorIndex];
+    const IconComponent = ICON_COMPONENTS[iconIndex];
+    const icon = <IconComponent />;
+
+    const config: SourceTypeConfig = { color, icon };
+
+    // 缓存配置
+    configCache.set(sourceType, config);
+
+    return config;
+  };
+})();
+
 const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
   isMobile,
   canShowSideBySide,
@@ -295,7 +376,7 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
           计算机: 0,
           数学: 0,
         };
-        
+
         try {
           const apiDomainCounts = await fetchDomainStatistics();
           // 确保返回的数据包含所有需要的字段
@@ -307,18 +388,21 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
             数学: apiDomainCounts["数学"] || 0,
           };
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "未知错误";
+          const errorMessage =
+            error instanceof Error ? error.message : "未知错误";
           setErrors((prev) => ({
             ...prev,
             catalogs: `获取领域统计数据失败: ${errorMessage}`,
           }));
           console.error("获取领域统计数据失败:", error);
-          
+
           // 如果API调用失败，使用本地计算作为fallback
           domainCounts = {
             通信: catalogsData.filter((c) => c?.domain === "通信").length,
-            自然科学: catalogsData.filter((c) => c?.domain === "自然科学").length,
-            电路与电子: catalogsData.filter((c) => c?.domain === "电路与电子").length,
+            自然科学: catalogsData.filter((c) => c?.domain === "自然科学")
+              .length,
+            电路与电子: catalogsData.filter((c) => c?.domain === "电路与电子")
+              .length,
             计算机: catalogsData.filter((c) => c?.domain === "计算机").length,
             数学: catalogsData.filter((c) => c?.domain === "数学").length,
           };
@@ -964,120 +1048,44 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
                         padding: isMobile ? "4px" : "6px",
                       }}
                     >
-                      <Tag
-                        color={
-                          type === "技术文档"
-                            ? "blue"
-                            : type === "学术论文"
-                            ? "green"
-                            : type === "技术规范"
-                            ? "orange"
-                            : type === "专利文献"
-                            ? "purple"
-                            : type === "实验报告"
-                            ? "cyan"
-                            : type === "教科书"
-                            ? "magenta"
-                            : type === "行业标准"
-                            ? "gold"
-                            : type === "技术白皮书"
-                            ? "volcano"
-                            : type === "会议记录"
-                            ? "geekblue"
-                            : type === "研究论文"
-                            ? "lime"
-                            : "default"
-                        }
-                        style={{
-                          fontSize: isMobile ? "9px" : "10px",
-                          padding: isMobile ? "0px 4px" : "1px 6px",
-                          marginBottom: isMobile ? "2px" : "3px",
-                        }}
-                      >
-                        {type === "技术文档" ? (
-                          <FileTextOutlined
-                            style={{
-                              fontSize: isMobile ? "9px" : "10px",
-                            }}
-                          />
-                        ) : type === "学术论文" ? (
-                          <BookOutlined
-                            style={{
-                              fontSize: isMobile ? "9px" : "10px",
-                            }}
-                          />
-                        ) : type === "技术规范" ? (
-                          <AuditOutlined
-                            style={{
-                              fontSize: isMobile ? "9px" : "10px",
-                            }}
-                          />
-                        ) : type === "专利文献" ? (
-                          <FilePdfOutlined
-                            style={{
-                              fontSize: isMobile ? "9px" : "10px",
-                            }}
-                          />
-                        ) : type === "实验报告" ? (
-                          <ProfileOutlined
-                            style={{
-                              fontSize: isMobile ? "9px" : "10px",
-                            }}
-                          />
-                        ) : type === "教科书" ? (
-                          <ReadOutlined
-                            style={{
-                              fontSize: isMobile ? "9px" : "10px",
-                            }}
-                          />
-                        ) : type === "行业标准" ? (
-                          <SnippetsOutlined
-                            style={{
-                              fontSize: isMobile ? "9px" : "10px",
-                            }}
-                          />
-                        ) : type === "技术白皮书" ? (
-                          <FileWordOutlined
-                            style={{
-                              fontSize: isMobile ? "9px" : "10px",
-                            }}
-                          />
-                        ) : type === "会议记录" ? (
-                          <FileTextOutlined
-                            style={{
-                              fontSize: isMobile ? "9px" : "10px",
-                            }}
-                          />
-                        ) : type === "研究论文" ? (
-                          <BookOutlined
-                            style={{
-                              fontSize: isMobile ? "9px" : "10px",
-                            }}
-                          />
-                        ) : (
-                          <FileTextOutlined
-                            style={{
-                              fontSize: isMobile ? "9px" : "10px",
-                            }}
-                          />
-                        )}
-                        <span
-                          style={{
-                            marginLeft: isMobile ? "4px" : "5px",
-                          }}
-                        >
-                          {type}
-                        </span>
-                      </Tag>
-                      <div
-                        style={{
-                          fontSize: isMobile ? "11px" : "12px",
-                          fontWeight: "bold",
-                          color: "#1890ff",
-                        }}
-                      >
-                        {count} 个
-                      </div>
+                      {/* 使用统一的配置接口获取来源类型的样式配置 */}
+                      {(() => {
+                        const { color, icon } = getSourceTypeConfig(type);
+                        return (
+                          <>
+                            <Tag
+                              color={color}
+                              style={{
+                                fontSize: isMobile ? "9px" : "10px",
+                                padding: isMobile ? "0px 4px" : "1px 6px",
+                                marginBottom: isMobile ? "2px" : "3px",
+                              }}
+                            >
+                              <span
+                                style={{ fontSize: isMobile ? "9px" : "10px" }}
+                              >
+                                {icon}
+                              </span>
+                              <span
+                                style={{
+                                  marginLeft: isMobile ? "4px" : "5px",
+                                }}
+                              >
+                                {type}
+                              </span>
+                            </Tag>
+                            <div
+                              style={{
+                                fontSize: isMobile ? "11px" : "12px",
+                                fontWeight: "bold",
+                                color: "#1890ff",
+                              }}
+                            >
+                              {count} 个
+                            </div>
+                          </>
+                        );
+                      })()}
                     </Card>
                   </Col>
                 ))}
