@@ -95,9 +95,11 @@ const KnowledgeTree = forwardRef<KnowledgeTreeRef>((_, ref) => {
       const tree = convertToTreeStructure(sortedDomainData);
       setTreeData(tree);
 
-      // 默认展开第一级（Domain层级）
-      const firstLevelKeys = tree.map((node) => node.key);
-      setExpandedKeys(firstLevelKeys);
+      // 默认只展开"通信"domain，其他domain保持折叠状态
+      const communicationKeys = tree
+        .filter((node) => node.key === '通信' || node.key.startsWith('通信/'))
+        .map((node) => node.key);
+      setExpandedKeys(communicationKeys);
     } catch (error) {
       console.error("加载数据失败:", error);
       message.error("加载数据失败");
